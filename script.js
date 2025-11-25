@@ -6,9 +6,9 @@
 const tools = [
     {
         id: 1,
-        title: "Percentage Calculator",
+        title: "Chart Percentage Calculator",
         description: "Calculate increases, decreases, and percentage differences instantly.",
-        path: "pages/percentage-calc.html",
+        path: "pages/chart.html",
         icon: "🧮",
         tags: ["math", "finance"]
     },
