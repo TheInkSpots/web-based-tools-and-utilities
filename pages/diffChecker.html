@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevUtils - Git Diff Checker</title>
+    
+    <!-- Library: jsdiff (Standard for diffing text) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+
+    <style>
+        /* --- 1. THEME VARIABLES --- */
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --text-main: #cccccc;
+            --text-muted: #6e7681;
+            --border: #30363d;
+            
+            --jwt-pink: #fb015b;
+            --jwt-blue: #00b9f1;
+            
+            /* VS Code Diff Colors (Dark) */
+            --diff-add-bg: rgba(46, 160, 67, 0.15);
+            --diff-add-text: #babbbd; /* Normal text */
+            --diff-add-gutter: rgba(46, 160, 67, 0.3);
+            
+            --diff-del-bg: rgba(248, 81, 73, 0.15);
+            --diff-del-text: #babbbd;
+            --diff-del-gutter: rgba(248, 81, 73, 0.3);
+
+            --gutter-bg: #1e1e1e;
+            --gutter-text: #6e7681;
+            --gutter-border: #30363d;
+            
+            --code-font: 'Fira Code', 'Consolas', monospace;
+        }
+
+        [data-theme=light] {
+            --bg-dark: #ffffff;
+            --bg-panel: #f6f8fa;
+            --text-main: #24292f;
+            --text-muted: #57606a;
+            --border: #d0d7de;
+            
+            /* VS Code Diff Colors (Light) */
+            --diff-add-bg: #e6ffec;
+            --diff-add-text: #24292f;
+            --diff-add-gutter: #acf2bd;
+            
+            --diff-del-bg: #ffebe9;
+            --diff-del-text: #24292f;
+            --diff-del-gutter: #ffc1c0;
+
+            --gutter-bg: #f6f8fa;
+            --gutter-text: #6e7681;
+            --gutter-border: #d0d7de;
+        }
+
+        /* --- 2. RESET & LAYOUT --- */
+        * { box-sizing: border-box; outline: 0; }
+        body { font-family: 'Segoe UI', sans-serif; color: var(--text-main); background-color: var(--bg-dark); margin: 0; padding-bottom: 50px; transition: background .3s; }
+        
+        /* Header */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+        .logo { gap: 10px; font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; color: var(--text-main); }
+        .logo-icon { width: 32px; height: 32px; background: var(--jwt-blue); border-radius: 4px; display: grid; place-items: center; color: #fff; font-family: var(--code-font); font-weight: bold; }
+        .icon-btn { cursor: pointer; opacity: 0.7; font-size: 1.2rem; }
+
+        /* Layout */
+        .container { max-width: 1600px; margin: 20px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 20px; height: calc(100vh - 100px); }
+        
+        /* --- 3. INPUT SECTION (Top Half) --- */
+        .input-container { display: flex; gap: 20px; height: 35%; min-height: 200px; }
+        .input-box { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-panel); overflow: hidden; }
+        .input-header { padding: 8px 15px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        
+        textarea { 
+            flex: 1; resize: none; border: none; padding: 15px; 
+            background: var(--bg-panel); color: var(--text-main); 
+            font-family: var(--code-font); font-size: 0.9rem; line-height: 1.5;
+        }
+        textarea:focus { background: rgba(0,0,0,0.02); }
+
+        /* Action Bar */
+        .action-bar { display: flex; justify-content: center; align-items: center; gap: 15px; }
+        .btn { 
+            background: var(--jwt-blue); color: white; border: none; padding: 10px 25px; 
+            border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9rem; 
+            transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn:hover { background: #009ecb; }
+        .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+        .btn.secondary:hover { border-color: var(--text-main); color: var(--text-main); }
+
+        /* --- 4. DIFF OUTPUT (Bottom Half) --- */
+        .diff-viewer { 
+            flex: 1; border: 1px solid var(--border); border-radius: 6px; 
+            background: var(--bg-panel); overflow: auto; position: relative; 
+            font-family: var(--code-font); font-size: 13px;
+        }
+
+        /* Diff Table Styling (VS Code Style) */
+        .diff-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .diff-table td { padding: 0; vertical-align: top; line-height: 20px; white-space: pre-wrap; word-break: break-all; }
+        
+        /* Columns */
+        .gutter { 
+            width: 50px; min-width: 50px; text-align: right; padding-right: 10px !important; 
+            color: var(--gutter-text); background: var(--gutter-bg); 
+            border-right: 1px solid var(--gutter-border); user-select: none; 
+        }
+        .code-cell { position: relative; padding-left: 15px !important; color: var(--text-main); }
+
+        /* Diff Colors */
+        .diff-del .gutter { background: var(--diff-del-gutter); color: var(--text-main); }
+        .diff-del .code-cell { background: var(--diff-del-bg); color: var(--diff-del-text); }
+        
+        .diff-add .gutter { background: var(--diff-add-gutter); color: var(--text-main); }
+        .diff-add .code-cell { background: var(--diff-add-bg); color: var(--diff-add-text); }
+
+        .empty-row { background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+        ::-webkit-scrollbar-corner { background: transparent; }
+
+        @media (max-width: 900px) { .input-container { flex-direction: column; height: auto; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon">+/-</div>
+            <span>DiffCheck</span>
+        </div>
+        <div class="icon-btn" id="themeToggle">◑</div>
+    </header>
+
+    <div class="container">
+        
+        <!-- INPUTS -->
+        <div class="input-container">
+            <div class="input-box">
+                <div class="input-header">ORIGINAL TEXT</div>
+                <textarea id="originalInput" placeholder="Paste original code here..."></textarea>
+            </div>
+            <div class="input-box">
+                <div class="input-header">MODIFIED TEXT</div>
+                <textarea id="modifiedInput" placeholder="Paste modified code here..."></textarea>
+            </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="action-bar">
+            <button class="btn" onclick="computeDiff()">Compare Files</button>
+            <button class="btn secondary" onclick="clearInputs()">Clear</button>
+        </div>
+
+        <!-- OUTPUT -->
+        <div class="diff-viewer">
+            <table class="diff-table" id="diffTable">
+                <!-- Diff Rows Generated Here -->
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. INIT & EXAMPLE DATA ---
+        const defaultOriginal = `function calculateTotal(items) {
+  let total = 0;
+  for (let i = 0; i < items.length; i++) {
+    total += items[i].price;
+  }
+  return total;
+}`;
+
+        const defaultModified = `function calculateTotal(items) {
+  // Use reduce for cleaner code
+  return items.reduce((sum, item) => {
+    return sum + item.price;
+  }, 0);
+}`;
+
+        document.getElementById('originalInput').value = defaultOriginal;
+        document.getElementById('modifiedInput').value = defaultModified;
+
+        // --- 2. CORE DIFF LOGIC ---
+        function computeDiff() {
+            const original = document.getElementById('originalInput').value;
+            const modified = document.getElementById('modifiedInput').value;
+            const table = document.getElementById('diffTable');
+            
+            table.innerHTML = ""; // Clear previous
+
+            // Use jsdiff library to compute line diffs
+            const diffs = Diff.diffLines(original, modified);
+
+            // We need to track line numbers for Left (Original) and Right (Modified)
+            let leftLine = 1;
+            let rightLine = 1;
+
+            // Render Loop
+            // VS Code Side-by-Side Logic:
+            // - Unchanged: Render on both sides.
+            // - Removed: Render on Left, Right is empty/hatched.
+            // - Added: Render on Right, Left is empty/hatched.
+            
+            diffs.forEach(part => {
+                const lines = part.value.split('\n');
+                // diffLines often adds a trailing empty string if ends with newline
+                if (lines[lines.length - 1] === '') lines.pop();
+
+                const colorClass = part.added ? 'diff-add' : part.removed ? 'diff-del' : '';
+
+                lines.forEach(line => {
+                    const row = document.createElement('tr');
+
+                    // 1. LEFT COLUMN (Original)
+                    if (part.added) {
+                        // If added, Left is empty
+                        row.innerHTML += `
+                            <td class="gutter"></td>
+                            <td class="code-cell empty-row"></td>
+                        `;
+                    } else {
+                        // If removed or unchanged, Left has content
+                        row.innerHTML += `
+                            <td class="gutter ${part.removed ? 'diff-del' : ''}">${leftLine}</td>
+                            <td class="code-cell ${part.removed ? 'diff-del' : ''}">${escapeHtml(line)}</td>
+                        `;
+                        leftLine++;
+                    }
+
+                    // 2. RIGHT COLUMN (Modified)
+                    if (part.removed) {
+                        // If removed, Right is empty
+                        row.innerHTML += `
+                            <td class="gutter"></td>
+                            <td class="code-cell empty-row"></td>
+                        `;
+                    } else {
+                        // If added or unchanged, Right has content
+                        row.innerHTML += `
+                            <td class="gutter ${part.added ? 'diff-add' : ''}">${rightLine}</td>
+                            <td class="code-cell ${part.added ? 'diff-add' : ''}">${escapeHtml(line)}</td>
+                        `;
+                        rightLine++;
+                    }
+
+                    table.appendChild(row);
+                });
+            });
+        }
+
+        // --- 3. UTILITIES ---
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\t/g, "    "); // Tab to spaces
+        }
+
+        function clearInputs() {
+            document.getElementById('originalInput').value = "";
+            document.getElementById('modifiedInput').value = "";
+            document.getElementById('diffTable').innerHTML = "";
+        }
+
+        // --- 4. THEME TOGGLE ---
+        const themeToggle = document.getElementById('themeToggle');
+        if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+        
+        themeToggle.addEventListener('click', () => {
+            if (document.body.getAttribute('data-theme') === 'light') {
+                document.body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Run initial diff
+        computeDiff();
+
+    </script>
+</body>
+</html>
