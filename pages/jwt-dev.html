@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Debugger | DevTools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+    
+    <!-- Crypto Library for HMAC-SHA256 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <style>
+        /* --- JWT SPECIFIC THEME --- */
+        :root {
+            --jwt-header: #fb015b;
+            --jwt-payload: #d63aff;
+            --jwt-signature: #00b9f1;
+            --bg-app: #0b0c10;
+            --bg-panel: #1b1c21;
+        }
+
+        body {
+            background-color: var(--bg-app);
+            color: #dcdcdc;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* Nav Override */
+        header {
+            background-color: #000;
+            border-bottom: 1px solid #333;
+            padding: 15px 20px;
+        }
+        .nav-back { color: var(--jwt-signature); font-size: 0.9rem; text-decoration: none;}
+
+        /* Layout */
+        .workspace {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Left Column: Encoded */
+        .col-encoded {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #333;
+            padding: 20px;
+            background: #0b0c10;
+        }
+
+        /* Right Column: Decoded */
+        .col-decoded {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow-y: auto;
+            background: #131417;
+        }
+
+        /* Typography & Inputs */
+        h2 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            color: #777;
+        }
+
+        .input-group {
+            background: var(--bg-panel);
+            border-radius: 6px;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Editor Areas */
+        .editor {
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            padding: 15px;
+            width: 100%;
+            outline: none;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        /* The Token Input (Rich Text feel) */
+        #tokenInput {
+            flex-grow: 1;
+            word-break: break-all;
+            white-space: pre-wrap;
+            color: #888;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 16px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        /* Coloring the Token Input */
+        .color-part1 { color: var(--jwt-header); }
+        .color-part2 { color: var(--jwt-payload); }
+        .color-part3 { color: var(--jwt-signature); }
+
+        /* JSON Boxes */
+        .json-box {
+            min-height: 150px;
+            color: #fff;
+        }
+
+        /* Secret Box */
+        .secret-row {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 185, 241, 0.1);
+            padding: 10px;
+        }
+        .secret-status {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--jwt-signature);
+            margin-right: 10px;
+        }
+        #secretInput {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: 'Fira Code', monospace;
+            flex: 1;
+            outline: none;
+        }
+
+        /* Labels */
+        .label-header { border-left: 4px solid var(--jwt-header); padding-left: 10px; color: #ccc; }
+        .label-payload { border-left: 4px solid var(--jwt-payload); padding-left: 10px; color: #ccc; }
+        .label-sig { border-left: 4px solid var(--jwt-signature); padding-left: 10px; color: #ccc; }
+
+        @media (max-width: 900px) {
+            .workspace { flex-direction: column; overflow-y: auto; height: auto;}
+            .col-encoded, .col-decoded { min-height: 500px; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="brand">
+                <a href="../index.html" class="nav-back">
+                    <span>&larr;</span> DevTools
+                </a>
+            </div>
+            <div style="font-size: 0.9rem; color: #555;">JWT_IO_CLONE</div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- ENCODED SIDE -->
+        <div class="col-encoded">
+            <h2>Encoded</h2>
+            <!-- We use ContentEditable div to allow coloring different parts of text -->
+            <div id="tokenInput" contenteditable="true" spellcheck="false"></div>
+            <div style="margin-top: 10px; font-size: 0.8rem; color: #555; text-align: center;">
+                Paste a token here
+            </div>
+        </div>
+
+        <!-- DECODED SIDE -->
+        <div class="col-decoded">
+            
+            <!-- HEADER -->
+            <div>
+                <h2 class="label-header">Header <span style="font-weight: normal; font-size: 0.8rem; opacity: 0.6">Algorithm & Type</span></h2>
+                <div class="input-group">
+                    <textarea id="headerJson" class="editor json-box" spellcheck="false"></textarea>
+                </div>
+            </div>
+
+            <!-- PAYLOAD -->
+            <div>
+                <h2 class="label-payload">Payload <span style="font-weight: normal; font-size: 0.8rem; opacity: 0.6">Data</span></h2>
+                <div class="input-group">
+                    <textarea id="payloadJson" class="editor json-box" spellcheck="false" style="min-height: 200px;"></textarea>
+                </div>
+            </div>
+
+            <!-- SIGNATURE -->
+            <div>
+                <h2 class="label-sig">Verify Signature</h2>
+                <div class="input-group">
+                    <div style="padding: 15px; font-family: 'Fira Code', monospace; color: var(--jwt-signature); opacity: 0.8; font-size: 0.9rem;">
+                        HMACSHA256(
+                          <br>&nbsp;&nbsp;base64UrlEncode(header) + "." +
+                          <br>&nbsp;&nbsp;base64UrlEncode(payload),
+                          <br>&nbsp;&nbsp;<span style="color:#fff; background: rgba(255,255,255,0.1); padding: 0 4px;">your-256-bit-secret</span>
+                        <br>)
+                    </div>
+                    <div class="secret-row">
+                        <span class="secret-status" id="sigStatus">SIGNATURE VERIFIED</span>
+                        <input type="text" id="secretInput" placeholder="Enter secret..." value="secret">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. UTILITIES ---
+        const base64UrlEncode = (str) => {
+            let base64 = btoa(str);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        const base64UrlDecode = (str) => {
+            str = str.replace(/-/g, '+').replace(/_/g, '/');
+            let pad = str.length % 4;
+            if (pad) str += new Array(5 - pad).join('=');
+            try {
+                return atob(str);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // --- 2. DOM ELEMENTS ---
+        const tokenInput = document.getElementById('tokenInput');
+        const headerInput = document.getElementById('headerJson');
+        const payloadInput = document.getElementById('payloadJson');
+        const secretInput = document.getElementById('secretInput');
+        const sigStatus = document.getElementById('sigStatus');
+
+        // --- 3. STATE ---
+        // Initial Dummy Data
+        const initialHeader = { alg: "HS256", typ: "JWT" };
+        const initialPayload = { sub: "1234567890", name: "John Doe", iat: 1516239022 };
+        
+        // --- 4. LOGIC ---
+
+        function updateFromDecoded() {
+            // 1. Get JSON
+            let headStr = headerInput.value;
+            let payStr = payloadInput.value;
+            
+            // Minify for encoding
+            try {
+                headStr = JSON.stringify(JSON.parse(headStr));
+                payStr = JSON.stringify(JSON.parse(payStr));
+            } catch(e) { return; } // Don't update if invalid JSON
+
+            // 2. Encode Parts
+            const part1 = base64UrlEncode(headStr);
+            const part2 = base64UrlEncode(payStr);
+
+            // 3. Sign
+            const secret = secretInput.value;
+            const signature = sign(part1, part2, secret);
+
+            // 4. Update UI
+            renderTokenColorized(part1, part2, signature);
+            checkSignature(signature, part1, part2, secret);
+        }
+
+        function updateFromEncoded() {
+            const raw = tokenInput.innerText.trim();
+            const parts = raw.split('.');
+            
+            if (parts.length !== 3) {
+                // Invalid structure logic could go here
+                return; 
+            }
+
+            // Decode
+            const headDec = base64UrlDecode(parts[0]);
+            const payDec = base64UrlDecode(parts[1]);
+
+            if (headDec) {
+                try {
+                    headerInput.value = JSON.stringify(JSON.parse(headDec), null, 4);
+                } catch (e) { headerInput.value = headDec; }
+            }
+            if (payDec) {
+                try {
+                    payloadInput.value = JSON.stringify(JSON.parse(payDec), null, 4);
+                } catch (e) { payloadInput.value = payDec; }
+            }
+
+            // Check Sig
+            checkSignature(parts[2], parts[0], parts[1], secretInput.value);
+        }
+
+        function sign(p1, p2, secret) {
+            const data = p1 + "." + p2;
+            const hash = CryptoJS.HmacSHA256(data, secret);
+            const hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
+            return hashInBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        function checkSignature(sig, p1, p2, secret) {
+            const calculated = sign(p1, p2, secret);
+            if (calculated === sig) {
+                sigStatus.innerText = "SIGNATURE VERIFIED";
+                sigStatus.style.color = "#00b9f1"; // Blue
+            } else {
+                sigStatus.innerText = "INVALID SIGNATURE";
+                sigStatus.style.color = "#fb015b"; // Red
+            }
+        }
+
+        function renderTokenColorized(p1, p2, p3) {
+            // We use HTML inside contenteditable to colorize
+            tokenInput.innerHTML = 
+                `<span class="color-part1">${p1}</span>` +
+                `<span style="color:#555">.</span>` +
+                `<span class="color-part2">${p2}</span>` +
+                `<span style="color:#555">.</span>` +
+                `<span class="color-part3">${p3}</span>`;
+        }
+
+        // --- 5. EVENTS ---
+
+        // Prevent heavy re-rendering loops on encoded input
+        tokenInput.addEventListener('input', () => {
+            // When user types in left box, we decode to right
+            // We don't re-colorize immediately to avoid cursor jumping
+            // Basic Decode:
+            const text = tokenInput.innerText;
+            const parts = text.split('.');
+            if(parts[0]) {
+                const dec = base64UrlDecode(parts[0]);
+                try { headerInput.value = JSON.stringify(JSON.parse(dec), null, 4); } catch(e){}
+            }
+            if(parts[1]) {
+                const dec = base64UrlDecode(parts[1]);
+                try { payloadInput.value = JSON.stringify(JSON.parse(dec), null, 4); } catch(e){}
+            }
+            if(parts.length === 3) checkSignature(parts[2], parts[0], parts[1], secretInput.value);
+        });
+
+        // JSON Edits
+        headerInput.addEventListener('input', updateFromDecoded);
+        payloadInput.addEventListener('input', updateFromDecoded);
+        secretInput.addEventListener('input', updateFromDecoded);
+
+        // --- 6. INIT ---
+        // Setup initial view
+        headerInput.value = JSON.stringify(initialHeader, null, 4);
+        payloadInput.value = JSON.stringify(initialPayload, null, 4);
+        updateFromDecoded();
+
+    </script>
+</body>
+</html>
+

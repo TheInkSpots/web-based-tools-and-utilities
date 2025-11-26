@@ -28,6 +28,22 @@ const tools = [
         icon: "💻",
         tags: ["developer", "data"]
     },
+     {
+        id: 6,
+        title: "JWT Decoder Prod",
+        description: "Decode and verify JSON Web Tokens in a production environment.",
+        path: "pages/jwt-prod.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
+     {
+        id: 7,
+        title: "JWT Decoder Dev",
+        description: "Decode and verify JSON Web Tokens in a development environment.",
+        path: "pages/jwt-dev.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
     {
         id: 4,
         title: "Placeholder Text",

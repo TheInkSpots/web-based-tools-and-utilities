@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Web Token (JWT) - Debugger</title>
+    <!-- Crypto Library for signing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Main Style Link (optional, but good for shared assets) -->
+    <link rel="stylesheet" href="../style.css">
+
+    <style>
+        :root {
+            /* JWT.io Brand Colors */
+            --jwt-pink: #fb015b;
+            --jwt-purple: #d63aff;
+            --jwt-blue: #00b9f1;
+            --bg-dark: #000000;
+            --bg-panel: #1b1c21;
+            --text-main: #ffffff;
+            --text-muted: #8e9196;
+            --border: #333;
+            --success: #27ae60;
+            
+            /* Alert Boxes */
+            --alert-blue-bg: #1C273C;
+            --alert-blue-border: #2c3e50;
+            --alert-yellow-bg: #322810;
+            --alert-yellow-text: #e2c08d;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f5f7f9;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666;
+            --border: #ddd;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 50px;
+            transition: background 0.3s;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: var(--bg-dark); /* Transparent/Dark */
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            align-items: center;
+        }
+        
+        .nav-item { color: var(--text-muted); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .nav-item.active { color: var(--jwt-pink); border-bottom: 2px solid var(--jwt-pink); padding-bottom: 2px; }
+        .nav-item:hover { color: var(--text-main); }
+
+        .tools-menu { display: flex; align-items: center; gap: 15px; }
+        .icon-btn { cursor: pointer; opacity: 0.7; width: 20px; height: 20px; }
+        .icon-btn:hover { opacity: 1; }
+
+        /* --- HERO & ALERTS --- */
+        .hero-title {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .hero-title h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            margin: 0;
+        }
+
+        .alerts-container {
+            max-width: 1100px;
+            margin: 0 auto 30px auto;
+            display: flex;
+            gap: 20px;
+            padding: 0 15px;
+        }
+
+        .alert-box {
+            flex: 1;
+            padding: 20px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .alert-info {
+            background-color: var(--alert-blue-bg);
+            border: 1px solid var(--alert-blue-border);
+            color: #aebfd6;
+        }
+        .alert-info a { color: var(--jwt-blue); text-decoration: none; }
+
+        .alert-warning {
+            background-color: var(--alert-yellow-bg);
+            color: var(--alert-yellow-text);
+            position: relative;
+        }
+        .close-alert { position: absolute; top: 10px; right: 10px; cursor: pointer; }
+
+        /* --- DEBUGGER TOOL --- */
+        .debugger-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        .tabs-header {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .main-tab {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .main-tab.active { color: var(--text-main); }
+
+        .workspace {
+            display: flex;
+            gap: 30px;
+            min-height: 600px;
+        }
+
+        /* LEFT COLUMN (Encoded) */
+        .col-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .focus-check { text-transform: none; font-weight: normal; color: var(--text-muted); }
+
+        .encoded-wrapper {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-header {
+            background-color: rgba(39, 174, 96, 0.2);
+            color: var(--success);
+            padding: 10px 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border-bottom: 1px solid var(--success);
+        }
+        .status-header.error {
+            background-color: rgba(251, 1, 91, 0.1);
+            color: var(--jwt-pink);
+            border-bottom: 1px solid var(--jwt-pink);
+        }
+
+        #tokenEditor {
+            flex: 1;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            word-break: break-all;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            resize: none;
+        }
+
+        /* Token Colors */
+        .tk-header { color: var(--jwt-pink); }
+        .tk-payload { color: var(--jwt-purple); }
+        .tk-sig { color: var(--jwt-blue); }
+        .tk-dot { color: var(--text-main); }
+
+        /* RIGHT COLUMN (Decoded) */
+        .col-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .json-editor-box {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .box-header {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        .box-tabs span {
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 15px;
+            cursor: pointer;
+            color: var(--jwt-blue);
+        }
+        .box-tabs span.inactive { color: var(--text-muted); }
+        .box-actions { font-size: 0.75rem; color: var(--text-muted); cursor: pointer; }
+
+        .editor-textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            padding: 15px;
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .label-header { border-left: 4px solid var(--jwt-pink); padding-left: 10px; }
+        .label-payload { border-left: 4px solid var(--jwt-purple); padding-left: 10px; }
+        .label-sig { border-left: 4px solid var(--jwt-blue); padding-left: 10px; }
+
+        .sig-box {
+            padding: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: var(--jwt-blue);
+            line-height: 1.6;
+        }
+        .sig-input-container {
+            background: rgba(0, 185, 241, 0.1);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+        }
+        .sig-status { font-weight: bold; margin-right: 10px; font-size: 0.8rem; }
+        .sig-input {
+            background: transparent;
+            border: none;
+            color: white;
+            flex: 1;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+        .gen-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .gen-btn:hover { background: #444; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .workspace { flex-direction: column; }
+            .alerts-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">
+            <svg class="logo-icon" viewBox="0 0 100 100" fill="none">
+                <!-- Simple SVG representation of JWT logo -->
+                <circle cx="50" cy="50" r="45" stroke="#FB015B" stroke-width="5"/>
+                <path d="M30 70 L50 30 L70 70" stroke="#D63AFF" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="50" cy="55" r="5" fill="#00B9F1"/>
+            </svg>
+            <span style="color:var(--text-main)">JWT</span>
+            <span style="color:var(--jwt-pink); font-size:0.8em; margin-top:5px; margin-left:5px;">IO</span>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-item active">Debugger</a>
+            <a class="nav-item">Introduction</a>
+            <a class="nav-item">Libraries</a>
+            <a class="nav-item">Ask</a>
+        </nav>
+
+        <div class="tools-menu">
+            <!-- Theme Toggle -->
+            <div class="icon-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </div>
+            <!-- Lang -->
+            <select style="background:transparent; color:white; border:1px solid #333; padding:2px; border-radius:4px;">
+                <option>English</option>
+                <option>Spanish</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <div class="hero-title">
+        <h1>JSON Web Token (JWT) Debugger</h1>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="alerts-container">
+        <div class="alert-box alert-info">
+            <strong>Decode, verify, and generate JWTs.</strong> RFC 7519 method for representing claims securely between two parties. <br>
+            <a href="#">Learn more about JWT</a> &nbsp; <a href="#">See JWT libraries</a>
+        </div>
+        <div class="alert-box alert-warning">
+            <span class="close-alert" onclick="this.parentElement.style.display='none'">×</span>
+            <strong>Warning:</strong> JWTs are credentials. We do not record tokens, but be careful where you paste them. All validation is done client-side in your browser.
+        </div>
+    </div>
+
+    <!-- MAIN TOOL -->
+    <div class="debugger-container">
+        
+        <div class="tabs-header">
+            <div class="main-tab active">JWT Decoder</div>
+            <div class="main-tab" style="opacity:0.5; cursor:not-allowed;">JWT Encoder</div>
+        </div>
+
+        <div class="workspace">
+            
+            <!-- LEFT COLUMN: Encoded -->
+            <div class="col-left">
+                <div class="section-header">
+                    <span>Encoded Value</span>
+                    <label class="focus-check">
+                        <input type="checkbox"> Enable auto-focus
+                    </label>
+                </div>
+                
+                <div class="encoded-wrapper">
+                    <div class="status-header" id="validityStatus">
+                        <span>✔ Valid JWT</span>
+                        <span style="font-size:0.75rem; font-weight:normal;">Signature Verified</span>
+                    </div>
+                    <!-- ContentEditable for Rich Text Coloring -->
+                    <div id="tokenEditor" contenteditable="true" spellcheck="false"></div>
+                </div>
+                <div style="text-align:right; margin-top:5px;">
+                    <button class="gen-btn" onclick="generateExample()">Generate example</button>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Decoded -->
+            <div class="col-right">
+                
+                <!-- HEADER -->
+                <div>
+                    <div class="section-header label-header">Decoded Header</div>
+                    <div class="json-editor-box">
+                        <div class="box-header">
+                            <div class="box-tabs"><span>JSON</span> <span class="inactive">CLAIMS TABLE</span></div>
+                            <div class="box-actions">COPY</div>
+                        </div>
+                        <textarea id="inputHeader" class="editor-textarea" spellcheck="false"></textarea>
+                    </div>
+                </div>
+
+                <!-- PAYLOAD -->
+                <div>
+                    <div class="section-header label-payload">Decoded Payload</div>
+                    <div class="json-editor-box">
+                        <div class="box-header">
+                            <div class="box-tabs"><span>JSON</span> <span class="inactive">CLAIMS TABLE</span></div>
+                            <div class="box-actions">COPY</div>
+                        </div>
+                        <textarea id="inputPayload" class="editor-textarea" spellcheck="false" style="min-height:180px;"></textarea>
+                    </div>
+                </div>
+
+                <!-- SIGNATURE -->
+                <div>
+                    <div class="section-header label-sig">Verify Signature</div>
+                    <div class="json-editor-box">
+                        <div class="sig-box">
+                            HMACSHA256(<br>
+                            &nbsp;&nbsp;base64UrlEncode(header) + "." +<br>
+                            &nbsp;&nbsp;base64UrlEncode(payload),<br>
+                            <div class="sig-input-container">
+                                <span class="sig-status" id="sigLabel">your-256-bit-secret</span>
+                                <input type="text" id="inputSecret" class="sig-input" value="secret" placeholder="secret">
+                            </div>
+                            )
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- UTILS ---
+        const $ = id => document.getElementById(id);
+
+        function base64url(source) {
+            let encodedSource = CryptoJS.enc.Base64.stringify(source);
+            encodedSource = encodedSource.replace(/=+$/, '');
+            encodedSource = encodedSource.replace(/\+/g, '-');
+            encodedSource = encodedSource.replace(/\//g, '_');
+            return encodedSource;
+        }
+
+        function decodeBase64Url(source) {
+            let encodedSource = source.replace(/-/g, '+').replace(/_/g, '/');
+            var words = CryptoJS.enc.Base64.parse(encodedSource);
+            return CryptoJS.enc.Utf8.stringify(words);
+        }
+
+        // --- STATE ---
+        const defaultHeader = { alg: "HS256", typ: "JWT" };
+        const defaultPayload = {
+            sub: "1234567890",
+            name: "John Doe",
+            iat: 1516239022
+        };
+        
+        // --- LOGIC ---
+        function signToken() {
+            try {
+                const headerStr = $('inputHeader').value;
+                const payloadStr = $('inputPayload').value;
+                const secret = $('inputSecret').value;
+
+                // Minify JSON
+                const headerObj = JSON.parse(headerStr);
+                const payloadObj = JSON.parse(payloadStr);
+
+                const stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(headerObj));
+                const stringifiedPayload = CryptoJS.enc.Utf8.parse(JSON.stringify(payloadObj));
+                
+                const b64Header = base64url(stringifiedHeader);
+                const b64Payload = base64url(stringifiedPayload);
+
+                const tokenData = b64Header + "." + b64Payload;
+                
+                const signature = CryptoJS.HmacSHA256(tokenData, secret);
+                const b64Signature = base64url(signature);
+
+                const fullToken = tokenData + "." + b64Signature;
+                
+                // Only render if different to prevent cursor jumps
+                if($('tokenEditor').innerText.replace(/\n/g,'') !== fullToken) {
+                    renderColorized(b64Header, b64Payload, b64Signature);
+                }
+                
+                setValid(true);
+            } catch (e) {
+                // Invalid JSON while typing
+                setValid(false);
+            }
+        }
+
+        function decodeToken() {
+            const raw = $('tokenEditor').innerText.trim();
+            const parts = raw.split('.');
+            
+            if (parts.length === 3) {
+                try {
+                    const h = decodeBase64Url(parts[0]);
+                    const p = decodeBase64Url(parts[1]);
+                    
+                    $('inputHeader').value = JSON.stringify(JSON.parse(h), null, 2);
+                    $('inputPayload').value = JSON.stringify(JSON.parse(p), null, 2);
+                    
+                    // Verify Signature
+                    const secret = $('inputSecret').value;
+                    const data = parts[0] + "." + parts[1];
+                    const signature = base64url(CryptoJS.HmacSHA256(data, secret));
+                    
+                    if(signature === parts[2]) {
+                        setValid(true);
+                    } else {
+                        setValid(true, false); // Valid structure, invalid sig
+                    }
+                    
+                    // Re-render colors just in case text was black
+                    renderColorized(parts[0], parts[1], parts[2]);
+
+                } catch (e) {
+                    setValid(false);
+                }
+            } else {
+                setValid(false);
+            }
+        }
+
+        function renderColorized(h, p, s) {
+            $('tokenEditor').innerHTML = 
+                `<span class="tk-header">${h}</span>` +
+                `<span class="tk-dot">.</span>` +
+                `<span class="tk-payload">${p}</span>` +
+                `<span class="tk-dot">.</span>` +
+                `<span class="tk-sig">${s}</span>`;
+        }
+
+        function setValid(isValidStructure, isValidSig = true) {
+            const statusBox = $('validityStatus');
+            if(isValidStructure && isValidSig) {
+                statusBox.className = 'status-header';
+                statusBox.innerHTML = `<span>✔ Valid JWT</span><span style="font-size:0.75rem; font-weight:normal;">Signature Verified</span>`;
+            } else if (isValidStructure && !isValidSig) {
+                statusBox.className = 'status-header error';
+                statusBox.innerHTML = `<span>✖ Invalid Signature</span>`;
+            } else {
+                statusBox.className = 'status-header error';
+                statusBox.innerHTML = `<span>✖ Invalid JWT</span>`;
+            }
+        }
+
+        function generateExample() {
+            $('inputHeader').value = JSON.stringify(defaultHeader, null, 2);
+            $('inputPayload').value = JSON.stringify(defaultPayload, null, 2);
+            $('inputSecret').value = "secret";
+            signToken();
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            if(body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        // --- LISTENERS ---
+        // Right Side Edits -> Re-sign
+        $('inputHeader').addEventListener('input', signToken);
+        $('inputPayload').addEventListener('input', signToken);
+        $('inputSecret').addEventListener('input', () => {
+             // If we are editing secret, we re-verify or re-sign? 
+             // JWT.io behavior: editing secret re-signs the token on the left if decoded side changed, 
+             // OR re-verifies if token was pasted.
+             // For simplicity: We re-sign based on current Right side values.
+             signToken();
+        });
+
+        // Left Side Edits -> Decode
+        $('tokenEditor').addEventListener('input', decodeToken);
+
+        // Init
+        generateExample();
+
+    </script>
+</body>
+</html>
+
