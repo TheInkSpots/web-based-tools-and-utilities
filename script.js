@@ -45,6 +45,14 @@ const tools = [
         tags: ["security", "jwt"]
     },
     {
+        id: 7,
+        title: "Base64 Encoder Decoder",
+        description: "Encode and decode Base64 strings easily.",
+        path: "pages/base64.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
+    {
         id: 4,
         title: "Placeholder Text",
         description: "Generate Lorem Ipsum text for your prototypes.",
