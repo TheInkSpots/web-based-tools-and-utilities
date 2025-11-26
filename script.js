@@ -131,6 +131,14 @@ const tools = [
         path: "pages/jwt-dev.html",
         icon: "🐞",
         tags: ["security", "jwt", "debug"]
+    },
+    {
+        id: 17,
+        title: "Doom 1993 in WASM",
+        description: "Play the classic Doom 1993 game directly in your browser using WebAssembly.",
+        path: "pages/doom-wasm/index.html",
+        icon: "🎮",
+        tags: ["game", "wasm", "retro"]
     }
 ];
 
