@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Encoder / Decoder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Main Style Link -->
+    <link rel="stylesheet" href="../style.css">
+
+    <style>
+        :root {
+            /* Branding Colors adapted for Base64 (Green/Blue theme) */
+            --brand-pink: #fb015b;
+            --brand-blue: #00b9f1;
+            --brand-purple: #d63aff;
+            --bg-dark: #000000;
+            --bg-panel: #1b1c21;
+            --text-main: #ffffff;
+            --text-muted: #8e9196;
+            --border: #333;
+            --success: #27ae60;
+            
+            /* Alert Boxes */
+            --alert-blue-bg: #1C273C;
+            --alert-blue-border: #2c3e50;
+            --alert-yellow-bg: #322810;
+            --alert-yellow-text: #e2c08d;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f5f7f9;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666;
+            --border: #ddd;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 50px;
+            transition: background 0.3s;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: var(--bg-dark);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            align-items: center;
+        }
+        
+        .nav-item { color: var(--text-muted); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .nav-item.active { color: var(--brand-blue); border-bottom: 2px solid var(--brand-blue); padding-bottom: 2px; }
+        .nav-item:hover { color: var(--text-main); }
+
+        .tools-menu { display: flex; align-items: center; gap: 15px; }
+        .icon-btn { cursor: pointer; opacity: 0.7; width: 20px; height: 20px; }
+        .icon-btn:hover { opacity: 1; }
+
+        /* --- HERO & ALERTS --- */
+        .hero-title {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .hero-title h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            margin: 0;
+        }
+
+        .alerts-container {
+            max-width: 1100px;
+            margin: 0 auto 30px auto;
+            display: flex;
+            gap: 20px;
+            padding: 0 15px;
+        }
+
+        .alert-box {
+            flex: 1;
+            padding: 20px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .alert-info {
+            background-color: var(--alert-blue-bg);
+            border: 1px solid var(--alert-blue-border);
+            color: #aebfd6;
+        }
+        .alert-warning {
+            background-color: var(--alert-yellow-bg);
+            color: var(--alert-yellow-text);
+            position: relative;
+        }
+        .close-alert { position: absolute; top: 10px; right: 10px; cursor: pointer; }
+
+        /* --- DEBUGGER TOOL --- */
+        .debugger-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        .tabs-header {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .main-tab {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .main-tab.active { color: var(--text-main); }
+
+        .workspace {
+            display: flex;
+            gap: 30px;
+            min-height: 600px;
+        }
+
+        /* COLUMNS */
+        .col-left, .col-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .focus-check { text-transform: none; font-weight: normal; color: var(--text-muted); }
+
+        /* INPUT WRAPPERS */
+        .input-wrapper {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* STATUS HEADER (Left Only) */
+        .status-header {
+            background-color: rgba(39, 174, 96, 0.2);
+            color: var(--success);
+            padding: 10px 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border-bottom: 1px solid var(--success);
+        }
+        .status-header.error {
+            background-color: rgba(251, 1, 91, 0.1);
+            color: var(--brand-pink);
+            border-bottom: 1px solid var(--brand-pink);
+        }
+
+        /* EDITOR AREAS */
+        .editor-textarea {
+            flex: 1;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            resize: none;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        /* RIGHT COLUMN Specifics */
+        .json-editor-box {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .box-header {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .label-decoded { border-left: 4px solid var(--brand-blue); padding-left: 10px; }
+        
+        .gen-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .gen-btn:hover { background: #444; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .workspace { flex-direction: column; }
+            .alerts-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">
+            <!-- Simple Base64 Icon (Stacks) -->
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00B9F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+            </svg>
+            <span style="color:var(--text-main); margin-left: 10px;">Base64</span>
+            <span style="color:var(--brand-blue); font-size:0.8em; margin-top:5px; margin-left:5px;">IO</span>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-item active">Converter</a>
+            <a class="nav-item">Guide</a>
+            <a class="nav-item">Ask</a>
+        </nav>
+
+        <div class="tools-menu">
+            <!-- Theme Toggle -->
+            <div class="icon-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </div>
+            <select style="background:transparent; color:white; border:1px solid #333; padding:2px; border-radius:4px;">
+                <option>UTF-8</option>
+                <option>ASCII</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <div class="hero-title">
+        <h1>Base64 Encoder / Decoder</h1>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="alerts-container">
+        <div class="alert-box alert-info">
+            <strong>Encode and Decode data securely.</strong> Base64 is a binary-to-text encoding scheme. <br>
+            <a href="#" style="color:var(--brand-blue)">Learn more about Base64</a>
+        </div>
+        <div class="alert-box alert-warning">
+            <span class="close-alert" onclick="this.parentElement.style.display='none'">×</span>
+            <strong>Note:</strong> All conversion is done client-side in your browser. No data is sent to our servers.
+        </div>
+    </div>
+
+    <!-- MAIN TOOL -->
+    <div class="debugger-container">
+        
+        <div class="tabs-header">
+            <div class="main-tab active">Live Converter</div>
+        </div>
+
+        <div class="workspace">
+            
+            <!-- LEFT COLUMN: Encoded (Base64) -->
+            <div class="col-left">
+                <div class="section-header">
+                    <span>Encoded (Base64)</span>
+                    <label class="focus-check">
+                        <input type="checkbox" checked> Auto-update
+                    </label>
+                </div>
+                
+                <div class="input-wrapper">
+                    <div class="status-header" id="validityStatus">
+                        <span>✔ Valid Base64</span>
+                    </div>
+                    <!-- Textarea for Raw Input -->
+                    <textarea id="encodedInput" class="editor-textarea" spellcheck="false" placeholder="Paste Base64 here..."></textarea>
+                </div>
+                <div style="text-align:right;">
+                    <button class="gen-btn" onclick="copyToClipboard('encodedInput')">Copy</button>
+                    <button class="gen-btn" onclick="clearAll()">Clear</button>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Decoded (Plain Text) -->
+            <div class="col-right">
+                
+                <div style="flex:1; display:flex; flex-direction:column;">
+                    <div class="section-header label-decoded">Decoded (Plain Text)</div>
+                    <div class="json-editor-box">
+                        <div class="box-header">
+                            <div style="font-size:0.75rem; font-weight:bold; color:var(--brand-blue);">TEXT / JSON</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="copyToClipboard('decodedInput')">COPY</div>
+                        </div>
+                        <textarea id="decodedInput" class="editor-textarea" spellcheck="false" placeholder="Type plain text here..."></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- UTILS ---
+        const $ = id => document.getElementById(id);
+
+        // UTF-8 Aware Encoding/Decoding
+        // Standard btoa/atob fails with unicode strings (emojis etc)
+        function utf8_to_b64(str) {
+            return window.btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function b64_to_utf8(str) {
+            return decodeURIComponent(escape(window.atob(str)));
+        }
+
+        // --- STATE ---
+        const exampleText = "Hello World! 👋 This is a Base64 test.";
+        
+        // --- LOGIC ---
+        function updateFromEncoded() {
+            const encoded = $('encodedInput').value.trim();
+            const statusBox = $('validityStatus');
+            
+            if (encoded === "") {
+                $('decodedInput').value = "";
+                setStatus(true); // Empty is technically valid state to reset
+                return;
+            }
+
+            try {
+                // Try decoding
+                const decoded = b64_to_utf8(encoded);
+                $('decodedInput').value = decoded;
+                setStatus(true);
+            } catch (e) {
+                // Invalid Base64
+                setStatus(false);
+            }
+        }
+
+        function updateFromDecoded() {
+            const decoded = $('decodedInput').value;
+            
+            try {
+                // Encode
+                const encoded = utf8_to_b64(decoded);
+                $('encodedInput').value = encoded;
+                setStatus(true);
+            } catch (e) {
+                console.error(e);
+                setStatus(false);
+            }
+        }
+
+        function setStatus(isValid) {
+            const statusBox = $('validityStatus');
+            if(isValid) {
+                statusBox.className = 'status-header';
+                statusBox.innerHTML = `<span>✔ Valid Base64</span>`;
+            } else {
+                statusBox.className = 'status-header error';
+                statusBox.innerHTML = `<span>✖ Invalid Base64 String</span>`;
+            }
+        }
+
+        function clearAll() {
+            $('encodedInput').value = "";
+            $('decodedInput').value = "";
+            setStatus(true);
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            if(body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const copyText = $(elementId);
+            copyText.select();
+            document.execCommand("copy");
+            
+            // Visual feedback could go here
+        }
+
+        // --- LISTENERS ---
+        $('encodedInput').addEventListener('input', updateFromEncoded);
+        $('decodedInput').addEventListener('input', updateFromDecoded);
+
+        // --- INIT ---
+        $('decodedInput').value = exampleText;
+        updateFromDecoded(); // Initial render
+
+    </script>
+</body>
+</html>
+
