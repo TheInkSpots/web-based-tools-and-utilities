@@ -88,7 +88,7 @@ const tools = [
         id: 11,
         title: "Rich Text Editor",
         description: "WYSIWYG editor for formatting rich text content.",
-        path: "pages/richTextEditor.html",
+        path: "pages/richText.html",
         icon: "✒️",
         tags: ["productivity", "writing"]
     },
