@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Code Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+
+    <style>
+        :root {
+            /* JWT.io Brand Colors Reused */
+            --brand-html: #e34c26; /* HTML Orange */
+            --brand-css: #264de4;  /* CSS Blue */
+            --brand-js: #f0db4f;   /* JS Yellow */
+            
+            --bg-dark: #000000;
+            --bg-panel: #1b1c21;
+            --text-main: #ffffff;
+            --text-muted: #8e9196;
+            --border: #333;
+            
+            /* Alert Boxes */
+            --alert-blue-bg: #1C273C;
+            --alert-blue-border: #2c3e50;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f5f7f9;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666;
+            --border: #ddd;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 50px;
+            transition: background 0.3s;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: var(--bg-dark);
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            align-items: center;
+        }
+        
+        .nav-item { color: var(--text-muted); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .nav-item.active { color: var(--brand-html); border-bottom: 2px solid var(--brand-html); padding-bottom: 2px; }
+        
+        .tools-menu { display: flex; align-items: center; gap: 15px; }
+        .icon-btn { cursor: pointer; opacity: 0.7; width: 20px; height: 20px; }
+        .icon-btn:hover { opacity: 1; }
+
+        /* --- WORKSPACE --- */
+        .workspace-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .hero-title h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        .alert-box {
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            background-color: var(--alert-blue-bg);
+            border: 1px solid var(--alert-blue-border);
+            color: #aebfd6;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* SPLIT PANE */
+        .split-pane {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            min-height: 500px;
+        }
+
+        /* LEFT COLUMN (Editor) */
+        .col-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* Prevent flex overflow */
+        }
+
+        .editor-container {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TABS */
+        .editor-tabs {
+            display: flex;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-right: 1px solid var(--border);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { background: rgba(255,255,255,0.02); color: var(--text-main); }
+        
+        .tab.active-html { color: var(--brand-html); border-bottom-color: var(--brand-html); background: rgba(227, 76, 38, 0.05); }
+        .tab.active-css { color: var(--brand-css); border-bottom-color: var(--brand-css); background: rgba(38, 77, 228, 0.05); }
+        .tab.active-js { color: var(--brand-js); border-bottom-color: var(--brand-js); background: rgba(240, 219, 79, 0.05); }
+
+        /* EDITOR TEXTAREA */
+        .code-editor {
+            flex: 1;
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            display: none; /* Hidden by default */
+        }
+        .code-editor.visible { display: block; }
+
+        /* RIGHT COLUMN (Preview) */
+        .col-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .preview-container {
+            background-color: #ffffff; /* Always white for web preview */
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #fff;
+        }
+
+        .actions-bar {
+            padding: 5px 10px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .refresh-btn:hover { color: var(--text-main); border-color: var(--text-main); }
+
+        @media (max-width: 900px) {
+            .split-pane { flex-direction: column; }
+            .col-left, .col-right { min-height: 400px; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">
+            <!-- Code Icon -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e34c26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span style="color:var(--text-main); margin-left: 5px;">Web</span>
+            <span style="color:var(--brand-html); font-size:0.9em; margin-top:2px;">Editor</span>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-item active">Playground</a>
+            <a class="nav-item">Snippets</a>
+            <a class="nav-item">Settings</a>
+        </nav>
+
+        <div class="tools-menu">
+            <!-- Theme Toggle -->
+            <div class="icon-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace-container">
+        
+        <div class="hero-title">
+            <h1>Frontend Playground</h1>
+        </div>
+
+        <div class="alert-box">
+             <strong>Live Editor:</strong> Type HTML, CSS, and JS on the left. See the result instantly on the right.
+        </div>
+
+        <div class="split-pane">
+            
+            <!-- LEFT: Editor Tabs -->
+            <div class="col-left">
+                <div class="section-header">
+                    <span>Source Code</span>
+                    <label style="font-weight:normal; color:var(--text-muted); font-size:0.8rem;">
+                        <input type="checkbox" id="autoRun" checked> Auto-run
+                    </label>
+                </div>
+                
+                <div class="editor-container">
+                    <div class="editor-tabs">
+                        <div class="tab active-html" onclick="switchTab('html', this)">HTML</div>
+                        <div class="tab" onclick="switchTab('css', this)">CSS</div>
+                        <div class="tab" onclick="switchTab('js', this)">JS</div>
+                    </div>
+                    
+                    <!-- HTML Editor -->
+                    <textarea id="htmlCode" class="code-editor visible" spellcheck="false" placeholder="<!-- Type HTML here -->
+<h1>Hello World</h1>
+<p>Edit me!</p>"></textarea>
+                    
+                    <!-- CSS Editor -->
+                    <textarea id="cssCode" class="code-editor" spellcheck="false" placeholder="/* Type CSS here */
+body {
+  font-family: sans-serif;
+  color: #333;
+  padding: 20px;
+}
+h1 { color: #e34c26; }"></textarea>
+                    
+                    <!-- JS Editor -->
+                    <textarea id="jsCode" class="code-editor" spellcheck="false" placeholder="// Type JS here
+console.log('Hello from editor');"></textarea>
+                </div>
+            </div>
+
+            <!-- RIGHT: Preview -->
+            <div class="col-right">
+                <div class="section-header">
+                    <span>Result / Preview</span>
+                </div>
+                
+                <div class="preview-container">
+                    <div class="actions-bar">
+                        <button class="refresh-btn" onclick="runCode()">Run ▶</button>
+                    </div>
+                    <iframe id="previewFrame"></iframe>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // --- DOM ELEMENTS ---
+        const htmlInput = document.getElementById('htmlCode');
+        const cssInput = document.getElementById('cssCode');
+        const jsInput = document.getElementById('jsCode');
+        const preview = document.getElementById('previewFrame');
+        const autoRunCheck = document.getElementById('autoRun');
+
+        // --- TABS LOGIC ---
+        function switchTab(type, tabElement) {
+            // 1. Reset Tabs UI
+            document.querySelectorAll('.tab').forEach(t => {
+                t.className = 'tab'; // Remove active classes
+            });
+            
+            // 2. Set Active Tab UI
+            tabElement.classList.add('tab'); // Add base class back
+            tabElement.classList.add(`active-${type}`); // Add specific active class
+
+            // 3. Toggle Textareas
+            document.querySelectorAll('.code-editor').forEach(el => el.classList.remove('visible'));
+            
+            if(type === 'html') htmlInput.classList.add('visible');
+            if(type === 'css') cssInput.classList.add('visible');
+            if(type === 'js') jsInput.classList.add('visible');
+            
+            // 4. Focus
+            if(type === 'html') htmlInput.focus();
+            if(type === 'css') cssInput.focus();
+            if(type === 'js') jsInput.focus();
+        }
+
+        // --- RUNNER LOGIC ---
+        function runCode() {
+            const html = htmlInput.value;
+            const css = `<style>${cssInput.value}</style>`;
+            const js = `<script>${jsInput.value}<\/script>`; // Escape closing script tag
+            
+            const source = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    ${css}
+                </head>
+                <body>
+                    ${html}
+                    ${js}
+                </body>
+                </html>
+            `;
+
+            // Use Data URL for iframe source
+            preview.srcdoc = source;
+        }
+
+        // --- AUTO UPDATE ---
+        function handleInput() {
+            if(autoRunCheck.checked) {
+                runCode();
+            }
+        }
+        
+        // Add listeners to editors
+        // Using 'input' event for real-time updates, or 'keyup' if too heavy
+        htmlInput.addEventListener('input', handleInput);
+        cssInput.addEventListener('input', handleInput);
+        jsInput.addEventListener('input', handleInput);
+
+        // --- TAB KEY SUPPORT ---
+        // Simple logic to allow typing tabs in textarea
+        const enableTabIndent = (el) => {
+            el.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+
+                    // Insert 2 spaces
+                    this.value = this.value.substring(0, start) + "  " + this.value.substring(end);
+
+                    // Move cursor
+                    this.selectionStart = this.selectionEnd = start + 2;
+                }
+            });
+        };
+
+        enableTabIndent(htmlInput);
+        enableTabIndent(cssInput);
+        enableTabIndent(jsInput);
+
+        // --- THEME TOGGLE ---
+        function toggleTheme() {
+            const body = document.body;
+            if(body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        // --- INIT ---
+        runCode(); // Initial run
+
+    </script>
+</body>
+</html>
+

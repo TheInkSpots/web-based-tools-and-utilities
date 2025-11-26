@@ -53,6 +53,22 @@ const tools = [
         tags: ["security", "jwt"]
     },
     {
+        id: 7,
+        title: "HTML development tools - Simple",
+        description: "Preview your HTML code in a simple editor.",
+        path: "pages/htmlEditor.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
+    {
+        id: 7,
+        title: "HTML development tools - Ultra",
+        description: "Preview your HTML code in an advanced editor with CDN support.",
+        path: "pages/htmlEditorCDN.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
+    {
         id: 4,
         title: "Placeholder Text",
         description: "Generate Lorem Ipsum text for your prototypes.",

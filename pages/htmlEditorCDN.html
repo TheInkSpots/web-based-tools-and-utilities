@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Code Editor | DevTools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+
+    <!-- ACE EDITOR & AUTOCOMPLETE EXTENSIONS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.min.js"></script>
+
+    <style>
+        :root {
+            /* JWT.io Brand Colors */
+            --brand-html: #e34c26; 
+            --brand-css: #264de4;  
+            --brand-js: #f0db4f;   
+            
+            --bg-dark: #000000;
+            --bg-panel: #1b1c21;
+            --text-main: #ffffff;
+            --text-muted: #8e9196;
+            --border: #333;
+            
+            /* Alert Boxes */
+            --alert-blue-bg: #1C273C;
+            --alert-blue-border: #2c3e50;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f5f7f9;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666;
+            --border: #ddd;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 50px;
+            transition: background 0.3s;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: var(--bg-dark);
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            align-items: center;
+        }
+        
+        .nav-item { color: var(--text-muted); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .nav-item.active { color: var(--brand-html); border-bottom: 2px solid var(--brand-html); padding-bottom: 2px; }
+        
+        .tools-menu { display: flex; align-items: center; gap: 15px; }
+        .icon-btn { cursor: pointer; opacity: 0.7; width: 20px; height: 20px; }
+        .icon-btn:hover { opacity: 1; }
+
+        /* --- WORKSPACE --- */
+        .workspace-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .hero-title h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        /* SPLIT PANE */
+        .split-pane {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            min-height: 500px;
+        }
+
+        /* LEFT COLUMN (Editor) */
+        .col-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .editor-container {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative; /* For Ace positioning */
+        }
+
+        /* TABS */
+        .editor-tabs {
+            display: flex;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-right: 1px solid var(--border);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover { background: rgba(255,255,255,0.02); color: var(--text-main); }
+        .tab.active-html { color: var(--brand-html); border-bottom-color: var(--brand-html); background: rgba(227, 76, 38, 0.1); }
+        .tab.active-css { color: var(--brand-css); border-bottom-color: var(--brand-css); background: rgba(38, 77, 228, 0.1); }
+        .tab.active-js { color: var(--brand-js); border-bottom-color: var(--brand-js); background: rgba(240, 219, 79, 0.1); }
+
+        /* ACE EDITOR STYLES */
+        .ace-wrapper {
+            position: absolute;
+            top: 45px; /* height of tabs */
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: none; /* hidden by default */
+        }
+        .ace-wrapper.visible { display: block; }
+        
+        #editor-html, #editor-css, #editor-js {
+            width: 100%;
+            height: 100%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* RIGHT COLUMN (Preview) */
+        .col-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .preview-container {
+            background-color: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; background-color: #fff; }
+
+        .actions-bar {
+            padding: 5px 10px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex; 
+            align-items: center;
+            gap: 6px;
+        }
+        .refresh-btn:hover { color: var(--text-main); border-color: var(--text-main); }
+
+        @media (max-width: 900px) {
+            .split-pane { flex-direction: column; }
+            .col-left, .col-right { min-height: 400px; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e34c26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span style="color:var(--text-main); margin-left: 5px;">Web</span>
+            <span style="color:var(--brand-html); font-size:0.9em; margin-top:2px;">Editor</span>
+        </div>
+
+        <nav class="nav-links">
+            <a class="nav-item active">Playground</a>
+            <a class="nav-item">Snippets</a>
+            <a class="nav-item">Config</a>
+        </nav>
+
+        <div class="tools-menu">
+            <div class="icon-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace-container">
+        
+        <div class="hero-title">
+            <h1>Frontend Playground</h1>
+        </div>
+
+        <div class="split-pane">
+            
+            <!-- LEFT: Editor Tabs -->
+            <div class="col-left">
+                <div class="section-header">
+                    <span>Source Code</span>
+                    <label style="font-weight:normal; color:var(--text-muted); font-size:0.8rem;">
+                        <input type="checkbox" id="autoRun" checked> Auto-run
+                    </label>
+                </div>
+                
+                <div class="editor-container">
+                    <div class="editor-tabs">
+                        <div class="tab active-html" onclick="switchTab('html', this)">HTML</div>
+                        <div class="tab" onclick="switchTab('css', this)">CSS</div>
+                        <div class="tab" onclick="switchTab('js', this)">JS</div>
+                    </div>
+                    
+                    <!-- ACE Editor Containers -->
+                    <div id="wrapper-html" class="ace-wrapper visible">
+                        <div id="editor-html"></div>
+                    </div>
+                    <div id="wrapper-css" class="ace-wrapper">
+                        <div id="editor-css"></div>
+                    </div>
+                    <div id="wrapper-js" class="ace-wrapper">
+                        <div id="editor-js"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Preview -->
+            <div class="col-right">
+                <div class="section-header">
+                    <span>Result / Preview</span>
+                </div>
+                
+                <div class="preview-container">
+                    <div class="actions-bar">
+                        <span style="font-size:0.7rem; color:var(--text-muted); margin-right:auto;">Sandbox Environment</span>
+                        <button class="refresh-btn" onclick="runCode()">Run ▶</button>
+                    </div>
+                    <iframe id="previewFrame"></iframe>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // --- ACE EDITOR SETUP ---
+        ace.require("ace/ext/language_tools"); // Enable auto-complete extension
+
+        // Initial Data
+        const initialHTML = `<!-- Edit HTML here -->
+<div class="container">
+  <h1>Welcome Developer!</h1>
+  <p>Start typing to see magic happen.</p>
+  <button id="btn">Click Me</button>
+</div>`;
+
+        const initialCSS = `/* Edit CSS here */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+.container {
+  text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+h1 { color: #e34c26; margin-bottom: 10px; }
+button {
+  padding: 10px 20px;
+  background: #264de4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+button:hover { background: #1a3cb3; }`;
+
+        const initialJS = `// Edit JS here
+document.getElementById('btn').addEventListener('click', () => {
+  alert('Hello from the editor!');
+  console.log("Button clicked");
+});`;
+
+        // Configure Editor Instances
+        function initEditor(id, mode, value) {
+            const editor = ace.edit(id);
+            editor.setTheme("ace/theme/tomorrow_night"); // Dark theme default
+            editor.session.setMode("ace/mode/" + mode);
+            editor.setValue(value, -1); // -1 moves cursor to start
+            
+            // Enable Auto-Completion & Options
+            editor.setOptions({
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true,
+                enableSnippets: true,
+                fontSize: "14pt",
+                showPrintMargin: false,
+                useWorker: false // Disable web workers for local file simplicity
+            });
+
+            // Auto-run listener
+            editor.session.on('change', () => {
+                if(document.getElementById('autoRun').checked) {
+                    // Debounce slightly for performance
+                    clearTimeout(window.runTimeout);
+                    window.runTimeout = setTimeout(runCode, 500);
+                }
+            });
+            return editor;
+        }
+
+        const htmlEditor = initEditor("editor-html", "html", initialHTML);
+        const cssEditor = initEditor("editor-css", "css", initialCSS);
+        const jsEditor = initEditor("editor-js", "javascript", initialJS);
+
+        // --- TABS LOGIC ---
+        function switchTab(type, tabElement) {
+            // UI Updates
+            document.querySelectorAll('.tab').forEach(t => t.className = 'tab');
+            tabElement.classList.add('tab', `active-${type}`);
+
+            // Hide all wrappers
+            document.querySelectorAll('.ace-wrapper').forEach(el => el.classList.remove('visible'));
+            
+            // Show selected wrapper
+            document.getElementById(`wrapper-${type}`).classList.add('visible');
+            
+            // Focus and Resize (Crucial for Ace when unhiding)
+            if(type === 'html') { htmlEditor.resize(); htmlEditor.focus(); }
+            if(type === 'css') { cssEditor.resize(); cssEditor.focus(); }
+            if(type === 'js') { jsEditor.resize(); jsEditor.focus(); }
+        }
+
+        // --- RUNNER LOGIC ---
+        function runCode() {
+            const html = htmlEditor.getValue();
+            const css = `<style>${cssEditor.getValue()}</style>`;
+            const js = `<script>${jsEditor.getValue()}<\/script>`;
+            
+            const source = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    ${css}
+                </head>
+                <body>
+                    ${html}
+                    ${js}
+                </body>
+                </html>
+            `;
+
+            const previewFrame = document.getElementById('previewFrame');
+            previewFrame.srcdoc = source;
+        }
+
+        // --- THEME TOGGLE ---
+        function toggleTheme() {
+            const body = document.body;
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            
+            if(isDark) {
+                // Switch to Light
+                body.setAttribute('data-theme', 'light');
+                htmlEditor.setTheme("ace/theme/chrome");
+                cssEditor.setTheme("ace/theme/chrome");
+                jsEditor.setTheme("ace/theme/chrome");
+            } else {
+                // Switch to Dark
+                body.setAttribute('data-theme', 'dark');
+                htmlEditor.setTheme("ace/theme/tomorrow_night");
+                cssEditor.setTheme("ace/theme/tomorrow_night");
+                jsEditor.setTheme("ace/theme/tomorrow_night");
+            }
+        }
+
+        // --- INIT ---
+        runCode();
+
+    </script>
+</body>
+</html>
+
+
