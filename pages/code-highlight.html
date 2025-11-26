@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Highlighter - DevUtility Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+    <!-- highlight.js theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <style>
+        /* Adjustments for the code page */
+        main {
+            max-width: 900px;
+        }
+        .code-container {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        h2 {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="brand">
+                <h1><a href="../" style="text-decoration: none; color: inherit;">DevUtility Hub</a></h1>
+            </div>
+            <p>Code Syntax Highlighting</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="code-container">
+            <h2>JavaScript Example</h2>
+            <pre><code class="language-javascript">
+function greet(name) {
+  console.log(`Hello, ${name}!`);
+}
+
+greet('Developer');
+            </code></pre>
+        </div>
+
+        <div class="code-container">
+            <h2>Python Example</h2>
+            <pre><code class="language-python">
+def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+print(factorial(5))
+            </code></pre>
+        </div>
+
+        <div class="code-container">
+            <h2>HTML Example</h2>
+            <pre><code class="language-html">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;My Page&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Welcome&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+            </code></pre>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 DevUtility Hub</p>
+    </footer>
+
+    <!-- highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

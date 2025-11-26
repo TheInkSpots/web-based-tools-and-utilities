@@ -10,6 +10,19 @@
     --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
+:root[data-theme='dark'] {
+    --primary: #3B82F6;
+    --primary-hover: #2563EB;
+    --bg-body: #111827;      /* Dark Gray */
+    --bg-card: #1F2937;      /* Lighter Dark Gray */
+    --text-main: #F9FAFB;    /* Off-white */
+    --text-sub: #9CA3AF;
+    --border: #374151;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -17,7 +30,60 @@ body {
     background-color: var(--bg-body);
     color: var(--text-main);
     line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Theme Toggler */
+.theme-toggler {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+#themeToggle { display: none; }
+
+.toggle-label {
+    cursor: pointer;
+    width: 50px;
+    height: 26px;
+    background: #374151; /* Dark Gray */
+    border-radius: 50px;
+    position: relative;
+    transition: background-color 0.3s;
+}
+
+.toggle-label .ball {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+#themeToggle:checked + .toggle-label {
+    background-color: var(--primary);
+}
+
+#themeToggle:checked + .toggle-label .ball {
+    transform: translateX(24px);
+}
+
+.sun-icon, .moon-icon {
+    position: absolute;
+    top: 5px;
+    font-size: 14px;
+    transition: opacity 0.3s ease;
+}
+.sun-icon { left: 6px; opacity: 1; color: #FBBF24; }
+.moon-icon { right: 6px; opacity: 0; color: #F3F4F6; }
+
+[data-theme="dark"] .sun-icon { opacity: 0; }
+[data-theme="dark"] .moon-icon { opacity: 1; }
 
 /* Header */
 header {
@@ -25,6 +91,7 @@ header {
     padding: 3rem 1.5rem;
     text-align: center;
     border-bottom: 1px solid var(--border);
+    position: relative; /* For theme toggler positioning */
 }
 
 .brand {
@@ -74,8 +141,8 @@ main {
 
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
 }
 
 /* Cards */
@@ -83,7 +150,7 @@ main {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1.25rem;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -100,33 +167,33 @@ main {
 }
 
 .card-icon {
-    font-size: 2rem;
+    font-size: 1.75rem;
     margin-bottom: 1rem;
     background: #EFF6FF;
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .card h3 {
-    margin-bottom: 0.5rem;
-    font-size: 1.25rem;
+    margin-bottom: 0.3rem;
+    font-size: 1.1rem;
 }
 
 .card p {
     color: var(--text-sub);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     flex-grow: 1; /* Pushes button down if we add one */
 }
 
 .card-arrow {
-    margin-top: 1.5rem;
+    margin-top: 1rem;
     font-weight: 600;
     color: var(--primary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -142,4 +209,26 @@ footer {
     color: var(--text-sub);
     font-size: 0.85rem;
     border-top: 1px solid var(--border);
+}
+
+/* Code Container */
+.code-container {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+}
+
+.code-container h2 {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+.code-container pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }

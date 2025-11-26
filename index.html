@@ -7,10 +7,21 @@
     <!-- Inter Font for Professional Look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- highlight.js theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 </head>
 <body>
 
     <header>
+        <div class="theme-toggler">
+            <input type="checkbox" id="themeToggle">
+            <label for="themeToggle" class="toggle-label">
+                <span class="sun-icon">☀️</span>
+                <span class="moon-icon">🌙</span>
+                <span class="ball"></span>
+            </label>
+        </div>
+
         <div class="header-content">
             <div class="brand">
                 <span class="logo-icon">⚡</span>
@@ -28,6 +39,16 @@
         <div id="toolsGrid" class="grid-container">
             <!-- Cards will be injected here by script.js -->
         </div>
+
+        <div class="code-container" style="margin-top: 2rem;">
+            <h2>Try it out!</h2>
+            <pre><code class="language-javascript">
+// Your code will be highlighted!
+function helloWorld() {
+    console.log("Hello, world!");
+}
+            </code></pre>
+        </div>
         
         <div id="noResults" class="hidden">
             <p>No tools found matching your search.</p>
@@ -39,5 +60,8 @@
     </footer>
 
     <script src="script.js"></script>
+    <!-- highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
 </body>
 </html>

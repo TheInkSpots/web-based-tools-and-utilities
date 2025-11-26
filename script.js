@@ -35,6 +35,14 @@ const tools = [
         path: "pages/lorem.html",
         icon: "📝",
         tags: ["utility", "text"]
+    },
+    {
+        id: 5,
+        title: "Code Highlighter",
+        description: "Highlight your code snippets with various themes.",
+        path: "pages/code-highlight.html",
+        icon: "✨",
+        tags: ["developer", "code"]
     }
 ];
 
@@ -42,6 +50,19 @@ const tools = [
 const grid = document.getElementById('toolsGrid');
 const searchInput = document.getElementById('searchInput');
 const noResults = document.getElementById('noResults');
+const themeToggle = document.getElementById('themeToggle');
+
+// Theme function
+function setTheme(isDark) {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    themeToggle.checked = isDark;
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+// Theme Toggler Event Listener
+themeToggle.addEventListener('change', (e) => {
+    setTheme(e.target.checked);
+});
 
 // Render Function
 function renderTools(filterText = "") {
@@ -82,12 +103,21 @@ function renderTools(filterText = "") {
     });
 }
 
-// Event Listeners
+// Search Event Listener
 searchInput.addEventListener('input', (e) => {
     renderTools(e.target.value);
 });
 
 // Initial Render
 document.addEventListener('DOMContentLoaded', () => {
+    // Set initial theme
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        setTheme(true);
+    } else {
+        setTheme(false);
+    }
+
     renderTools();
 });
