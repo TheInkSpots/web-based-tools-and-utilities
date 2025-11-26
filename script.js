@@ -12,14 +12,7 @@ const tools = [
         icon: "🧮",
         tags: ["math", "finance"]
     },
-    {
-        id: 2,
-        title: "CSS Shadow Generator",
-        description: "Visually create CSS box-shadows and copy the code.",
-        path: "pages/shadow-gen.html",
-        icon: "🎨",
-        tags: ["design", "css"]
-    },
+    
     {
         id: 3,
         title: "JSON Formatter",
@@ -69,6 +62,22 @@ const tools = [
         tags: ["security", "jwt"]
     },
     {
+        id: 7,
+        title: "Rich Text Editor",
+        description: "Preview your rich text content.",
+        path: "pages/richTextEditor.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
+    {
+        id: 7,
+        title: "Password and Crypto Generator",
+        description: "Generate secure passwords and cryptographic keys.",
+        path: "pages/passwordSecurity.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
+    {
         id: 4,
         title: "Placeholder Text",
         description: "Generate Lorem Ipsum text for your prototypes.",
@@ -83,6 +92,13 @@ const tools = [
         path: "pages/code-highlight.html",
         icon: "✨",
         tags: ["developer", "code"]
+    },{
+        id: 2,
+        title: "CSS Shadow Generator",
+        description: "Visually create CSS box-shadows and copy the code.",
+        path: "pages/shadow-gen.html",
+        icon: "🎨",
+        tags: ["design", "css"]
     }
 ];
 

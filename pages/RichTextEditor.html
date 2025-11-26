@@ -11,6 +11,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.min.js"></script>
 
+    <!-- JS BEAUTIFY (Formatter) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+
     <!-- QUILL EDITOR (Rich Text) -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
@@ -88,7 +91,7 @@
             margin: 0 auto;
             padding: 20px;
             gap: 20px;
-            overflow: hidden; /* Important for editors to scroll internally */
+            overflow: hidden;
         }
 
         .hero-title h1 {
@@ -103,7 +106,7 @@
             display: flex;
             flex: 1;
             gap: 20px;
-            min-height: 0; /* Important for flex child scrolling */
+            min-height: 0;
         }
 
         /* COLUMNS */
@@ -124,6 +127,19 @@
             font-weight: bold;
             letter-spacing: 0.5px;
         }
+
+        /* ACTION BUTTON (Prettify) */
+        .action-btn {
+            background: #333;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { background: var(--brand-rich); border-color: var(--brand-rich); }
 
         /* EDITOR CONTAINER (Left) */
         .editor-container {
@@ -176,7 +192,7 @@
             overflow: hidden;
         }
 
-        /* Quill Toolbar Overrides for Dark Mode */
+        /* Quill Toolbar Overrides */
         .ql-toolbar.ql-snow {
             border: none;
             border-bottom: 1px solid var(--border);
@@ -192,7 +208,6 @@
             color: var(--text-main);
         }
 
-        /* Quill Icons Color Fix */
         .ql-snow .ql-stroke { stroke: var(--text-muted); }
         .ql-snow .ql-fill { fill: var(--text-muted); }
         .ql-snow .ql-picker { color: var(--text-muted); }
@@ -203,7 +218,6 @@
             color: var(--text-main);
         }
 
-        /* Hover states for toolbar */
         .ql-snow .ql-picker:hover { color: var(--text-main); }
         .ql-snow .ql-picker:hover .ql-stroke { stroke: var(--text-main); }
 
@@ -264,9 +278,8 @@
             <div class="col-left">
                 <div class="section-header">
                     <span>Source Code</span>
-                    <label style="font-weight:normal; color:var(--text-muted); font-size:0.8rem;">
-                        Bi-directional Sync
-                    </label>
+                    <!-- Prettify Button Added Here -->
+                    <button class="action-btn" onclick="formatSource()">✨ Prettify</button>
                 </div>
                 
                 <div class="editor-container">
@@ -289,7 +302,6 @@
                 </div>
                 
                 <div class="rich-container">
-                    <!-- Quill Toolbar and Editor will be injected here -->
                     <div id="quill-editor"></div>
                 </div>
             </div>
@@ -303,17 +315,16 @@
 <h1>Welcome to the Editor</h1>
 <p>This is a <strong>rich text</strong> area.</p>
 <p>You can change colors: <span style="color: rgb(230, 0, 0);">Red</span>, <span style="color: rgb(0, 138, 0);">Green</span>, <span style="color: rgb(0, 102, 204);">Blue</span>.</p>
-<ul>
-    <li>Edit source on the left.</li>
-    <li>Edit visually on the right.</li>
-</ul>
-`;
+<ul><li>Edit source on the left.</li><li>Edit visually on the right.</li></ul>`;
 
         // --- 1. SETUP ACE EDITOR (LEFT) ---
         const aceEditor = ace.edit("ace-editor");
         aceEditor.setTheme("ace/theme/tomorrow_night");
         aceEditor.session.setMode("ace/mode/html");
+        
+        // Initial set without formatting, wait for user to click Prettify if they want
         aceEditor.setValue(initialContent.trim(), -1);
+        
         aceEditor.setOptions({
             fontSize: "14pt",
             showPrintMargin: false,
@@ -322,25 +333,20 @@
         });
 
         // --- 2. SETUP QUILL EDITOR (RIGHT) ---
-        // Configure Toolbar options (MS Word style)
         const toolbarOptions = [
             [{ 'header': [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
-            [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
             [{ 'align': [] }],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            ['link', 'image', 'clean']                        // remove formatting button
+            ['link', 'image', 'clean']
         ];
 
         const quill = new Quill('#quill-editor', {
             theme: 'snow',
-            modules: {
-                toolbar: toolbarOptions
-            }
+            modules: { toolbar: toolbarOptions }
         });
         
-        // Load initial content into Quill
-        // We use a slight timeout to ensure Quill is ready, though usually not needed strictly here
         quill.clipboard.dangerouslyPasteHTML(initialContent.trim());
 
         // --- 3. SYNC LOGIC ---
@@ -349,55 +355,55 @@
 
         // ACE -> QUILL
         aceEditor.session.on('change', () => {
-            if (isSyncingLeft) return; // Prevent loop if update came from Quill
-            
+            if (isSyncingLeft) return;
             isSyncingRight = true;
             const val = aceEditor.getValue();
-            
-            // Only update if different to preserve selection/history
-            // Note: Quill's HTML output might differ slightly from raw input (formatting), 
-            // so we just overwrite here for the "Source -> Visual" flow.
             const currentQuillHTML = quill.root.innerHTML;
-            
             if (val !== currentQuillHTML) {
-                // We use a soft match check or just overwrite
-                // Overwriting resets cursor in Quill, which is acceptable when typing in Source
                 quill.clipboard.dangerouslyPasteHTML(val);
             }
             isSyncingRight = false;
         });
 
         // QUILL -> ACE
-        quill.on('text-change', function(delta, oldDelta, source) {
-            if (isSyncingRight) return; // Prevent loop if update came from Ace
-            
+        quill.on('text-change', function() {
+            if (isSyncingRight) return;
             isSyncingLeft = true;
             const html = quill.root.innerHTML;
-            
             if (html !== aceEditor.getValue()) {
-                // Calculate cursor position? 
-                // For simplicity in this demo, we set value which might reset Ace cursor.
-                // To keep it advanced, we'd need diffing, but setValue is standard for simple sync.
-                aceEditor.setValue(html, 1); // 1 moves cursor to end
+                aceEditor.setValue(html, 1);
             }
             isSyncingLeft = false;
         });
 
-        // --- 4. TABS LOGIC ---
+        // --- 4. FORMATTING LOGIC (New) ---
+        function formatSource() {
+            // Prevent sync loops while formatting
+            isSyncingLeft = true; 
+            
+            const raw = aceEditor.getValue();
+            // Use js-beautify library
+            const formatted = html_beautify(raw, {
+                indent_size: 2,
+                wrap_line_length: 80,
+                preserve_newlines: true
+            });
+            
+            aceEditor.setValue(formatted, -1); // -1 keeps cursor at start
+            
+            isSyncingLeft = false;
+        }
+
+        // --- 5. UTILS ---
         function switchMode(mode, tabEl) {
-            // UI
             document.querySelectorAll('.tab').forEach(t => t.className = 'tab');
             tabEl.classList.add('tab', `active-${mode}`);
-            
-            // Ace Mode
             aceEditor.session.setMode(`ace/mode/${mode}`);
         }
 
-        // --- 5. THEME TOGGLE ---
         function toggleTheme() {
             const body = document.body;
             const isDark = body.getAttribute('data-theme') === 'dark';
-            
             if(isDark) {
                 body.setAttribute('data-theme', 'light');
                 aceEditor.setTheme("ace/theme/chrome");
@@ -409,4 +415,5 @@
     </script>
 </body>
 </html>
+
 
