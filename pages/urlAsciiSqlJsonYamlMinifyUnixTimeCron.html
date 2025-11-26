@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevUtils - Encoders & Formatters</title>
+    
+    <!-- Libraries -->
+    <!-- YAML Support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <!-- SQL Formatter (v4 for browser global support) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/4.0.2/sql-formatter.min.js"></script>
+    <!-- Cron Expression Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/cronstrue@latest/dist/cronstrue.min.js"></script>
+
+    <style>
+        /* --- 1. MISSING VARIABLE DEFINITIONS --- */
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --border: #333333;
+            
+            --jwt-pink: #fb015b;
+            --jwt-purple: #d63aff;
+            --jwt-blue: #00b9f1;
+            --success: #27ae60;
+            --alert-blue-bg: rgba(0, 185, 241, 0.1);
+            --alert-blue-border: rgba(0, 185, 241, 0.3);
+            --alert-yellow-bg: rgba(241, 196, 15, 0.1);
+            --alert-yellow-text: #f1c40f;
+        }
+
+        /* --- 2. PROVIDED CSS (Minified/Merged) --- */
+        body,header{background-color:var(--bg-dark)}.close-alert,.icon-btn,.main-tab,.nav-item{cursor:pointer}[data-theme=light]{--bg-dark:#f5f7f9;--bg-panel:#ffffff;--text-main:#333333;--text-muted:#666;--border:#ddd}*{box-sizing:border-box;outline:0}body{font-family:Roboto,sans-serif;color:var(--text-main);margin:0;padding-bottom:50px;transition:background .3s}header{display:flex;justify-content:space-between;align-items:center;padding:15px 30px}.logo,.nav-links{align-items:center;display:flex}.logo{gap:10px;font-weight:700;font-size:1.1rem}.logo-icon{width:32px;height:32px;background:var(--jwt-pink);border-radius:50%;display:grid;place-items:center;color:#fff}.nav-links{gap:20px;font-size:.9rem}.nav-item{color:var(--text-muted);text-decoration:none;font-weight:500}.nav-item.active{color:var(--jwt-pink);border-bottom:2px solid var(--jwt-pink);padding-bottom:2px}.main-tab.active,.nav-item:hover,.tk-dot{color:var(--text-main)}.tools-menu{display:flex;align-items:center;gap:15px}.icon-btn{opacity:.7;width:20px;height:20px}.icon-btn:hover{opacity:1}.hero-title{text-align:center;margin:30px 0}.hero-title h1{font-size:2rem;font-weight:300;margin:0}.alerts-container{max-width:1100px;margin:0 auto 30px;display:flex;gap:20px;padding:0 15px}.alert-box{flex:1;padding:20px;border-radius:4px;font-size:.85rem;line-height:1.5}#tokenEditor,.sig-box{line-height:1.6;font-family:'Fira Code',monospace}.alert-info{background-color:var(--alert-blue-bg);border:1px solid var(--alert-blue-border);color:var(--jwt-blue)}.alert-info a{color:var(--jwt-blue);text-decoration:none}.alert-warning{background-color:var(--alert-yellow-bg);color:var(--alert-yellow-text);position:relative}#tokenEditor,.focus-check,.main-tab{color:var(--text-muted)}.close-alert{position:absolute;top:10px;right:10px}.debugger-container{max-width:1200px;margin:0 auto;padding:0 15px}.tabs-header{display:flex;justify-content:center;gap:30px;margin-bottom:20px}.main-tab{font-size:1.5rem;font-weight:300}.workspace{display:flex;gap:30px;min-height:600px}.col-left{flex:1;display:flex;flex-direction:column}.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:.8rem;text-transform:uppercase;font-weight:700;letter-spacing:.5px}.focus-check{text-transform:none;font-weight:400}.encoded-wrapper{background-color:var(--bg-panel);border:1px solid var(--border);border-radius:6px;flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}.status-header{background-color:rgba(39,174,96,.2);color:var(--success);padding:10px 20px;font-size:.8rem;font-weight:700;display:flex;flex-direction:column;gap:5px;border-bottom:1px solid var(--success)}.status-header.error,.tk-header{color:var(--jwt-pink)}.box-actions,.box-tabs span{font-size:.75rem;cursor:pointer}.status-header.error{background-color:rgba(251,1,91,.1);border-bottom:1px solid var(--jwt-pink)}#tokenEditor{flex:1;padding:20px;font-size:16px;word-break:break-all;overflow-y:auto;white-space:pre-wrap;background:0 0;border:none;resize:none}.tk-payload{color:var(--jwt-purple)}.box-tabs span,.tk-sig{color:var(--jwt-blue)}.box-actions,.box-tabs span.inactive{color:var(--text-muted)}.col-right{flex:1;display:flex;flex-direction:column;gap:20px}.json-editor-box{background-color:var(--bg-panel);border:1px solid var(--border);border-radius:6px;overflow:hidden}.box-header{display:flex;justify-content:space-between;background:rgba(255,255,255,.05);padding:8px 15px;border-bottom:1px solid var(--border)}.box-tabs span{font-weight:700;margin-right:15px}.editor-textarea{width:100%;background:0 0;border:none;color:var(--text-main);font-family:'Fira Code',monospace;font-size:14px;padding:15px;min-height:120px;resize:vertical}.label-header{border-left:4px solid var(--jwt-pink);padding-left:10px}.label-payload{border-left:4px solid var(--jwt-purple);padding-left:10px}.label-sig{border-left:4px solid var(--jwt-blue);padding-left:10px}.sig-box{padding:15px;font-size:.9rem;color:var(--jwt-blue)}.sig-input-container{background:rgba(0,185,241,.1);padding:12px;display:flex;align-items:center;border-radius:4px}.gen-btn,.sig-input{color:#fff;border:none}.sig-status{font-weight:700;margin-right:10px;font-size:.8rem}.sig-input{background:0 0;flex:1;font-family:'Fira Code',monospace;font-size:.9rem}.gen-btn{background:#333;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:.8rem}.gen-btn:hover{background:#444}@media (max-width:900px){.alerts-container,.workspace{flex-direction:column}}
+
+        /* --- 3. ADDITIONAL CUSTOM CSS --- */
+        /* Enhancements for multi-tool layout */
+        .workspace { display: none; }
+        .workspace.active { display: flex; }
+        
+        /* Action Buttons Bar */
+        .actions-bar {
+            display: flex;
+            gap: 10px;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.1);
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .action-btn:hover { background: var(--border); }
+        .action-btn.primary { background: var(--jwt-pink); color: white; border-color: var(--jwt-pink); }
+        .action-btn.primary:hover { background: #d0004b; }
+        
+        /* Sub-tool separation */
+        .tool-block { margin-bottom: 20px; display: flex; flex-direction: column; flex:1; }
+        .tool-block label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; display: block; font-weight: 700;}
+
+        /* Timestamp inputs */
+        .ts-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .ts-input { background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 4px; flex: 1; font-family: 'Fira Code', monospace; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon">&lt;/&gt;</div>
+            <span>DevUtils</span>
+        </div>
+        <div class="tools-menu">
+            <div class="icon-btn" id="themeToggle">◑</div>
+        </div>
+    </header>
+
+    <div class="hero-title">
+        <h1>Web & Data Tools</h1>
+    </div>
+
+    <div class="debugger-container">
+        
+        <!-- MAIN TABS -->
+        <div class="tabs-header">
+            <div class="main-tab active" onclick="switchTab('encoders')">Encoders</div>
+            <div class="main-tab" onclick="switchTab('formatters')">Formatters</div>
+            <div class="main-tab" onclick="switchTab('converters')">Converters</div>
+            <div class="main-tab" onclick="switchTab('time')">Time & Cron</div>
+        </div>
+
+        <!-- TAB 1: ENCODERS (URL, HTML, Hex) -->
+        <div class="workspace active" id="tab-encoders">
+            <div class="col-left">
+                
+                <!-- URL Encoder -->
+                <div class="tool-block">
+                    <div class="section-header">URL Encoder / Decoder</div>
+                    <div class="json-editor-box">
+                        <textarea id="urlInput" class="editor-textarea" placeholder="Paste URL here..."></textarea>
+                        <div class="actions-bar">
+                            <button class="action-btn primary" onclick="processURL('encode')">Encode</button>
+                            <button class="action-btn" onclick="processURL('decode')">Decode</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hex Converter -->
+                <div class="tool-block">
+                    <div class="section-header">Hex / ASCII</div>
+                    <div class="json-editor-box">
+                        <textarea id="hexInput" class="editor-textarea" placeholder="Text or Hex..."></textarea>
+                        <div class="actions-bar">
+                            <button class="action-btn primary" onclick="processHex('toHex')">Text -> Hex</button>
+                            <button class="action-btn" onclick="processHex('toAscii')">Hex -> Text</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-right">
+                
+                <!-- HTML Entity -->
+                <div class="tool-block">
+                    <div class="section-header">HTML Entity Encoder</div>
+                    <div class="json-editor-box">
+                        <textarea id="htmlInput" class="editor-textarea" placeholder="<script>alert('xss')</script>"></textarea>
+                        <div class="actions-bar">
+                            <button class="action-btn primary" onclick="processHTML('encode')">Encode</button>
+                            <button class="action-btn" onclick="processHTML('decode')">Decode</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-block" style="flex:0">
+                    <div class="section-header">Output Result</div>
+                    <div class="encoded-wrapper">
+                        <div class="status-header" id="encoderStatus">READY</div>
+                        <textarea id="encoderOutput" class="editor-textarea" readonly style="height: 200px;"></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 2: FORMATTERS (SQL, CSS) -->
+        <div class="workspace" id="tab-formatters">
+            <div class="col-left">
+                <div class="section-header">Input Code</div>
+                <div class="json-editor-box" style="flex:1; display:flex; flex-direction:column;">
+                    <div class="box-header">
+                        <div class="box-tabs">
+                            <span onclick="setFormatterMode('sql')" id="tab-sql" class="active" style="color:var(--jwt-pink)">SQL</span>
+                            <span onclick="setFormatterMode('css')" id="tab-css" class="inactive">CSS / SCSS</span>
+                        </div>
+                    </div>
+                    <textarea id="formatterInput" class="editor-textarea" style="flex:1;" placeholder="Paste messy SQL or CSS here..."></textarea>
+                </div>
+            </div>
+            
+            <div class="col-right">
+                <div class="section-header">Formatted Output</div>
+                <div class="json-editor-box" style="flex:1; display:flex; flex-direction:column;">
+                    <div class="box-header">
+                        <div class="box-tabs"><span>RESULT</span></div>
+                        <button class="action-btn primary" onclick="runFormatter()">Format / Minify</button>
+                    </div>
+                    <textarea id="formatterOutput" class="editor-textarea" style="flex:1; color:var(--jwt-blue);"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CONVERTERS (JSON <> YAML) -->
+        <div class="workspace" id="tab-converters">
+            <div class="col-left">
+                <div class="section-header">JSON / YAML Input</div>
+                <div class="json-editor-box" style="height: 100%;">
+                    <textarea id="converterInput" class="editor-textarea" style="height: 100%;" placeholder='{"key": "value"} or YAML...'></textarea>
+                </div>
+            </div>
+            <div class="col-middle" style="display:flex; flex-direction:column; justify-content:center; gap:10px;">
+                <button class="action-btn primary" onclick="convertData('toYaml')">JSON &rarr; YAML</button>
+                <button class="action-btn primary" onclick="convertData('toJson')">YAML &rarr; JSON</button>
+            </div>
+            <div class="col-right">
+                <div class="section-header">Output</div>
+                <div class="json-editor-box" style="height: 100%;">
+                    <textarea id="converterOutput" class="editor-textarea" style="height: 100%; color:var(--jwt-purple);"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: TIME & CRON -->
+        <div class="workspace" id="tab-time">
+            <div class="col-left">
+                <!-- Unix Timestamp -->
+                <div class="tool-block">
+                    <div class="section-header">Unix Timestamp Converter</div>
+                    <div class="encoded-wrapper" style="padding:15px;">
+                        <div class="ts-row">
+                            <input type="number" id="tsInput" class="ts-input" placeholder="1716300000">
+                            <button class="action-btn" onclick="convertUnix('toHuman')">To Date &rarr;</button>
+                        </div>
+                        <div class="ts-row">
+                            <input type="text" id="tsDateOutput" class="ts-input" readonly style="color:var(--jwt-blue); border-color:transparent;">
+                        </div>
+                        <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+                        <div class="ts-row">
+                            <input type="datetime-local" id="dateInput" class="ts-input">
+                            <button class="action-btn" onclick="convertUnix('toUnix')">To Unix &rarr;</button>
+                        </div>
+                        <div class="ts-row">
+                            <input type="text" id="tsOutput" class="ts-input" readonly style="color:var(--jwt-pink); border-color:transparent;">
+                        </div>
+                        <button class="action-btn" style="width:100%; margin-top:10px;" onclick="document.getElementById('tsInput').value = Math.floor(Date.now()/1000); convertUnix('toHuman')">Current Time</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-right">
+                <!-- Cron Parser -->
+                <div class="tool-block">
+                    <div class="section-header">Cron Job Expression Parser</div>
+                    <div class="json-editor-box">
+                        <div class="box-header">
+                            <div class="box-tabs"><span>EXPRESSION</span></div>
+                        </div>
+                        <textarea id="cronInput" class="editor-textarea" style="height:80px; font-size:1.2rem;" placeholder="*/5 * * * *">*/5 * * * *</textarea>
+                        <div class="actions-bar">
+                            <button class="action-btn primary" onclick="parseCron()">Explain</button>
+                        </div>
+                    </div>
+                    <div class="alert-info" style="margin-top:20px; padding:20px; min-height:100px; display:flex; align-items:center;">
+                        <span id="cronResult" style="font-size:1.1rem; font-weight:500;">Every 5 minutes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- THEME TOGGLE ---
+        const themeToggle = document.getElementById('themeToggle');
+        if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+        themeToggle.addEventListener('click', () => {
+            if (document.body.getAttribute('data-theme') === 'light') {
+                document.body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // --- TAB SWITCHING ---
+        function switchTab(id) {
+            document.querySelectorAll('.workspace').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            document.querySelectorAll('.main-tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // --- 1. ENCODERS LOGIC ---
+        function setOutput(text, status = "SUCCESS", isError = false) {
+            const out = document.getElementById('encoderOutput');
+            const head = document.getElementById('encoderStatus');
+            out.value = text;
+            head.innerText = status;
+            if(isError) head.classList.add('error');
+            else head.classList.remove('error');
+        }
+
+        function processURL(mode) {
+            const input = document.getElementById('urlInput').value;
+            try {
+                const res = mode === 'encode' ? encodeURIComponent(input) : decodeURIComponent(input);
+                setOutput(res);
+            } catch (e) { setOutput(e.message, "ERROR", true); }
+        }
+
+        function processHTML(mode) {
+            const input = document.getElementById('htmlInput').value;
+            if (mode === 'encode') {
+                const div = document.createElement('div');
+                div.innerText = input;
+                setOutput(div.innerHTML);
+            } else {
+                const txt = document.createElement('textarea');
+                txt.innerHTML = input;
+                setOutput(txt.value);
+            }
+        }
+
+        function processHex(mode) {
+            const input = document.getElementById('hexInput').value;
+            let output = '';
+            if (mode === 'toHex') {
+                for (let i = 0; i < input.length; i++) {
+                    output += input.charCodeAt(i).toString(16).padStart(2, '0') + ' ';
+                }
+            } else {
+                const hex = input.replace(/\s+/g, '');
+                if (hex.length % 2 !== 0) { setOutput("Invalid Hex length", "ERROR", true); return; }
+                for (let i = 0; i < hex.length; i += 2) {
+                    output += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+                }
+            }
+            setOutput(output.trim());
+        }
+
+        // --- 2. FORMATTERS LOGIC ---
+        let formatterMode = 'sql';
+        function setFormatterMode(mode) {
+            formatterMode = mode;
+            document.getElementById('tab-sql').className = mode === 'sql' ? 'active' : 'inactive';
+            document.getElementById('tab-sql').style.color = mode === 'sql' ? 'var(--jwt-pink)' : 'var(--text-muted)';
+            document.getElementById('tab-css').className = mode === 'css' ? 'active' : 'inactive';
+            document.getElementById('tab-css').style.color = mode === 'css' ? 'var(--jwt-pink)' : 'var(--text-muted)';
+            document.getElementById('formatterInput').placeholder = mode === 'sql' ? "SELECT * FROM table..." : "body { color: red; }";
+        }
+
+        function runFormatter() {
+            const input = document.getElementById('formatterInput').value;
+            const outputEl = document.getElementById('formatterOutput');
+            
+            if(formatterMode === 'sql') {
+                try {
+                    // Uses sql-formatter library
+                    outputEl.value = window.sqlFormatter.format(input, { language: 'sql' });
+                } catch(e) { outputEl.value = "Error: " + e.message; }
+            } else {
+                // CSS Minifier (Simple Regex)
+                let min = input
+                    .replace(/\/\*[\s\S]*?\*\//g, "") // Remove comments
+                    .replace(/\s+/g, " ")             // Collapse whitespace
+                    .replace(/\s?([{:;}])\s?/g, "$1") // Remove space around delimiters
+                    .replace(/;}/g, "}");             // Remove last semicolon
+                outputEl.value = min.trim();
+            }
+        }
+
+        // --- 3. CONVERTERS LOGIC ---
+        function convertData(mode) {
+            const input = document.getElementById('converterInput').value;
+            const out = document.getElementById('converterOutput');
+            
+            try {
+                if (mode === 'toYaml') {
+                    const obj = JSON.parse(input);
+                    out.value = jsyaml.dump(obj);
+                } else {
+                    const obj = jsyaml.load(input);
+                    out.value = JSON.stringify(obj, null, 2);
+                }
+            } catch(e) {
+                out.value = "Parse Error:\n" + e.message;
+            }
+        }
+
+        // --- 4. TIME & CRON LOGIC ---
+        function convertUnix(mode) {
+            if (mode === 'toHuman') {
+                const ts = document.getElementById('tsInput').value;
+                if(!ts) return;
+                // Detect if ms or sec. Typically sec is 10 digits.
+                let val = parseInt(ts);
+                if(val < 10000000000) val *= 1000; 
+                document.getElementById('tsDateOutput').value = new Date(val).toLocaleString();
+            } else {
+                const dateStr = document.getElementById('dateInput').value;
+                if(!dateStr) return;
+                const ts = Math.floor(new Date(dateStr).getTime() / 1000);
+                document.getElementById('tsOutput').value = ts;
+            }
+        }
+
+        function parseCron() {
+            const val = document.getElementById('cronInput').value;
+            try {
+                const str = cronstrue.toString(val);
+                document.getElementById('cronResult').innerText = str;
+                document.getElementById('cronResult').style.color = "var(--jwt-blue)";
+            } catch(e) {
+                document.getElementById('cronResult').innerText = "Invalid Cron Expression";
+                document.getElementById('cronResult').style.color = "var(--jwt-pink)";
+            }
+        }
+
+        // Init Defaults
+        document.getElementById('tsInput').value = Math.floor(Date.now()/1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR.io Clone - Advanced</title>
+    
+    <!-- Library: QR Code Styling (Supports Logos, Dots, Colors) -->
+    <script type="text/javascript" src="https://unpkg.com/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+
+    <style>
+        /* --- THEME & VARS --- */
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --border: #333333;
+            --jwt-pink: #fb015b;
+            --jwt-purple: #d63aff;
+            --jwt-blue: #00b9f1;
+            --success: #27ae60;
+            --input-bg: rgba(0,0,0,0.2);
+        }
+        [data-theme=light] {
+            --bg-dark: #f5f7f9;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666;
+            --border: #ddd;
+            --input-bg: #f0f2f5;
+        }
+
+        /* --- BASE STYLES --- */
+        *{box-sizing:border-box;outline:0}
+        body{font-family:'Roboto', sans-serif; color:var(--text-main); background-color:var(--bg-dark); margin:0; padding-bottom:50px; transition:background .3s}
+        
+        header{display:flex;justify-content:space-between;align-items:center;padding:15px 30px; background: var(--bg-panel); border-bottom: 1px solid var(--border);}
+        .logo{gap:10px;font-weight:700;font-size:1.1rem; display:flex; align-items:center;}
+        .logo-icon{width:32px;height:32px;background:var(--jwt-pink);border-radius:4px;display:grid;place-items:center;color:#fff;}
+        .icon-btn{cursor:pointer; opacity:0.7; font-size:1.2rem;}
+
+        /* Layout */
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 15px; display: flex; gap: 30px; }
+        @media (max-width: 900px) { .container { flex-direction: column; } }
+
+        .col-config { flex: 2; display: flex; flex-direction: column; gap: 20px; }
+        .col-preview { flex: 1; }
+
+        /* Tabs */
+        .tab-bar { display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .tab-btn { padding: 10px 0; cursor: pointer; color: var(--text-muted); font-weight: 500; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--jwt-pink); border-bottom-color: var(--jwt-pink); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Type Grid */
+        .type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .type-card { 
+            background: var(--bg-panel); border: 1px solid var(--border); 
+            border-radius: 8px; padding: 15px 5px; 
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .type-card:hover { border-color: var(--jwt-blue); }
+        .type-card.active { background: rgba(0, 185, 241, 0.1); border-color: var(--jwt-blue); color: var(--jwt-blue); }
+        .type-icon { font-size: 1.5rem; }
+        .type-name { font-size: 0.75rem; font-weight: 500; }
+
+        /* Forms */
+        .config-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 25px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); font-weight: 700; }
+        .form-control { 
+            width: 100%; padding: 12px; border-radius: 4px; 
+            border: 1px solid var(--border); background: var(--input-bg); 
+            color: var(--text-main); font-family: inherit; 
+        }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        
+        /* Design Controls */
+        .color-row { display: flex; gap: 15px; align-items: center; margin-bottom:10px; }
+        .color-input { border: none; width: 40px; height: 40px; cursor: pointer; background: none; padding: 0; }
+        .file-upload-btn {
+            border: 1px dashed var(--border); padding: 15px; text-align: center; cursor: pointer; width: 100%; color: var(--text-muted);
+        }
+        .file-upload-btn:hover { border-color: var(--jwt-purple); color: var(--jwt-purple); }
+
+        /* Preview Box */
+        .preview-box { 
+            background: var(--bg-panel); border: 1px solid var(--border); 
+            border-radius: 6px; padding: 30px; 
+            display: flex; flex-direction: column; align-items: center; 
+            position: sticky; top: 20px;
+        }
+        /* We hide the library's canvas and show our own 'composed' canvas */
+        #qr-container { display: none; } 
+        #final-canvas { max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+        .download-btn {
+            margin-top: 20px; width: 100%; background: var(--jwt-pink);
+            color: white; border: none; padding: 12px; border-radius: 4px;
+            font-weight: 700; cursor: pointer; text-transform: uppercase;
+            font-size: 0.9rem; transition: 0.2s;
+        }
+        .download-btn:hover { background: #d0004b; }
+
+        .alert-info {
+            background: rgba(0, 185, 241, 0.1); color: var(--jwt-blue);
+            padding: 15px; border-radius: 4px; font-size: 0.85rem; margin-bottom: 20px;
+            border-left: 3px solid var(--jwt-blue); line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon">QR</div>
+            <span>Generator.io</span>
+        </div>
+        <div class="icon-btn" id="themeToggle">◑</div>
+    </header>
+
+    <div class="container">
+        
+        <!-- LEFT COLUMN: Config -->
+        <div class="col-config">
+            
+            <div class="config-box" style="padding-top: 0; overflow: hidden;">
+                <div class="tab-bar">
+                    <div class="tab-btn active" onclick="switchTab('content')">1. Enter Content</div>
+                    <div class="tab-btn" onclick="switchTab('design')">2. Customize Design</div>
+                </div>
+
+                <!-- CONTENT TAB -->
+                <div id="tab-content" class="tab-content active">
+                    <!-- Type Selector -->
+                    <div class="type-grid" id="typeGrid"></div>
+                    
+                    <div id="alertArea"></div>
+                    <div id="formArea"></div>
+                </div>
+
+                <!-- DESIGN TAB -->
+                <div id="tab-design" class="tab-content">
+                    
+                    <div class="section-header" style="font-weight:700; color:var(--jwt-purple); margin-bottom:15px;">FRAME OPTIONS</div>
+                    <div class="form-group">
+                        <label>Frame Style</label>
+                        <select id="frame-style" class="form-control" onchange="updateState()">
+                            <option value="none">No Frame</option>
+                            <option value="bottom-bubble">Banner Bottom</option>
+                            <option value="box-outline">Box Outline</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Frame Text</label>
+                        <input type="text" id="frame-text" class="form-control" value="SCAN ME" placeholder="e.g. SCAN ME" oninput="updateState()">
+                    </div>
+                    <div class="form-group">
+                        <label>Frame Color</label>
+                        <div class="color-row">
+                            <input type="color" id="frame-color" value="#000000" class="color-input" onchange="updateState()">
+                            <span style="font-size:0.8rem; color:var(--text-muted)">Select color</span>
+                        </div>
+                    </div>
+
+                    <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+
+                    <div class="section-header" style="font-weight:700; color:var(--jwt-purple); margin-bottom:15px;">LOGO</div>
+                    <div class="form-group">
+                        <label>Upload Logo (Center)</label>
+                        <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+                        <div class="file-upload-btn" onclick="document.getElementById('logo-upload').click()">
+                            <span id="logo-filename">Click to Upload Logo</span>
+                        </div>
+                        <div style="margin-top:5px; text-align:right;">
+                            <a style="font-size:0.75rem; cursor:pointer; color:var(--jwt-pink)" onclick="clearLogo()">Remove Logo</a>
+                        </div>
+                    </div>
+
+                    <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+
+                    <div class="section-header" style="font-weight:700; color:var(--jwt-purple); margin-bottom:15px;">COLORS & SHAPES</div>
+                    <div class="form-group">
+                        <label>Dots Pattern</label>
+                        <select id="dots-style" class="form-control" onchange="updateState()">
+                            <option value="square">Square (Classic)</option>
+                            <option value="dots">Dots (Modern)</option>
+                            <option value="rounded">Rounded</option>
+                            <option value="extra-rounded">Extra Rounded</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="color-row">
+                            <div style="flex:1">
+                                <label>Dots Color</label>
+                                <input type="color" id="color-dots" value="#000000" class="color-input" onchange="updateState()">
+                            </div>
+                            <div style="flex:1">
+                                <label>Background</label>
+                                <input type="color" id="color-bg" value="#ffffff" class="color-input" onchange="updateState()">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Preview -->
+        <div class="col-preview">
+            <div class="preview-box">
+                <!-- Hidden container for the library to render into -->
+                <div id="qr-container"></div>
+                <!-- Visible canvas that we compose (Frame + QR) -->
+                <canvas id="final-canvas"></canvas>
+                
+                <button class="download-btn" onclick="downloadComposedQR()">Download PNG</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* --- 1. DATA & CONFIG --- */
+        const TYPES = [
+            { id: 'link', name: 'URL', icon: '🔗' },
+            { id: 'text', name: 'Text', icon: '📝' },
+            { id: 'email', name: 'E-mail', icon: '✉️' },
+            { id: 'wifi', name: 'WI-FI', icon: '📶' },
+            { id: 'vcard', name: 'V-Card', icon: '👤' },
+            { id: 'whatsapp', name: 'WhatsApp', icon: '📱' },
+            { id: 'pdf', name: 'PDF', icon: '📄' },
+            { id: 'image', name: 'Image', icon: '🖼️' }
+        ];
+
+        let state = {
+            type: 'link',
+            value: 'https://qr.io',
+            logo: null,
+            frame: 'none',
+            frameText: 'SCAN ME',
+            frameColor: '#000000',
+            dotsColor: '#000000',
+            bgColor: '#ffffff',
+            dotsStyle: 'square'
+        };
+
+        // Initialize QR Code Styling Library
+        let qrCode = new QRCodeStyling({
+            width: 280,
+            height: 280,
+            type: "canvas",
+            data: "https://qr.io",
+            image: "",
+            dotsOptions: { color: "#000000", type: "square" },
+            backgroundOptions: { color: "#ffffff" },
+            imageOptions: { crossOrigin: "anonymous", margin: 10 }
+        });
+
+        /* --- 2. INIT & TABS --- */
+        window.onload = () => {
+            renderTypeGrid();
+            loadForm('link');
+            qrCode.append(document.getElementById("qr-container"));
+            updateState(); // Initial Render
+        };
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        /* --- 3. FORM GENERATION --- */
+        function renderTypeGrid() {
+            const grid = document.getElementById('typeGrid');
+            grid.innerHTML = TYPES.map(t => `
+                <div class="type-card ${t.id === state.type ? 'active' : ''}" onclick="loadForm('${t.id}')">
+                    <div class="type-icon">${t.icon}</div>
+                    <div class="type-name">${t.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadForm(type) {
+            state.type = type;
+            renderTypeGrid();
+            
+            const formArea = document.getElementById('formArea');
+            const alertArea = document.getElementById('alertArea');
+            alertArea.innerHTML = ''; 
+
+            let html = '';
+            
+            // Handle Hosted Types
+            if (['pdf', 'image'].includes(type)) {
+                alertArea.innerHTML = `<div class="alert-info"><b>Note:</b> For PDF/Images, please upload your file to a cloud host (e.g. Drive, Dropbox) and paste the shareable link below.</div>`;
+                html = `<div class="form-group"><label>File URL</label><input type="url" id="inp-url" class="form-control" placeholder="https://" oninput="updateState()"></div>`;
+            }
+            else if (type === 'link') {
+                html = `<div class="form-group"><label>Website URL</label><input type="url" id="inp-url" class="form-control" placeholder="https://site.com" oninput="updateState()"></div>`;
+            }
+            else if (type === 'text') {
+                html = `<div class="form-group"><label>Content</label><textarea id="inp-text" class="form-control" oninput="updateState()"></textarea></div>`;
+            }
+            else if (type === 'email') {
+                html = `<div class="form-group"><label>Email</label><input type="email" id="inp-email" class="form-control" oninput="updateState()"></div>
+                        <div class="form-group"><label>Subject</label><input type="text" id="inp-sub" class="form-control" oninput="updateState()"></div>`;
+            }
+            else if (type === 'wifi') {
+                html = `<div class="form-group"><label>SSID</label><input type="text" id="inp-ssid" class="form-control" oninput="updateState()"></div>
+                        <div class="form-group"><label>Password</label><input type="text" id="inp-pass" class="form-control" oninput="updateState()"></div>`;
+            }
+
+            formArea.innerHTML = html;
+            updateState();
+        }
+
+        /* --- 4. LOGO HANDLING --- */
+        function handleLogoUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    state.logo = e.target.result;
+                    document.getElementById('logo-filename').innerText = input.files[0].name;
+                    updateState();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        function clearLogo() {
+            state.logo = null;
+            document.getElementById('logo-upload').value = "";
+            document.getElementById('logo-filename').innerText = "Click to Upload Logo";
+            updateState();
+        }
+
+        /* --- 5. CORE UPDATE LOGIC --- */
+        async function updateState() {
+            // 1. Gather Form Data to build QR Value
+            let val = "https://qr.io";
+            
+            if (state.type === 'link' || state.type === 'pdf' || state.type === 'image') val = document.getElementById('inp-url')?.value || " ";
+            if (state.type === 'text') val = document.getElementById('inp-text')?.value || " ";
+            if (state.type === 'email') val = `mailto:${document.getElementById('inp-email')?.value}`;
+            if (state.type === 'wifi') val = `WIFI:S:${document.getElementById('inp-ssid')?.value};P:${document.getElementById('inp-pass')?.value};;`;
+            
+            state.value = val;
+
+            // 2. Update Library Params
+            state.frame = document.getElementById('frame-style').value;
+            state.frameText = document.getElementById('frame-text').value;
+            state.frameColor = document.getElementById('frame-color').value;
+            state.dotsColor = document.getElementById('color-dots').value;
+            state.bgColor = document.getElementById('color-bg').value;
+            state.dotsStyle = document.getElementById('dots-style').value;
+
+            qrCode.update({
+                data: state.value,
+                image: state.logo,
+                dotsOptions: {
+                    color: state.dotsColor,
+                    type: state.dotsStyle
+                },
+                backgroundOptions: {
+                    color: state.bgColor
+                }
+            });
+
+            // 3. Wait for library to render to hidden container, then Compose Frame
+            // We give a small delay for the canvas to populate
+            setTimeout(composeFinalImage, 50);
+        }
+
+        /* --- 6. FRAME COMPOSITOR (The Fix for "Frames") --- */
+        function composeFinalImage() {
+            const sourceCanvas = document.querySelector('#qr-container canvas');
+            if(!sourceCanvas) return;
+
+            const finalCanvas = document.getElementById('final-canvas');
+            const ctx = finalCanvas.getContext('2d');
+
+            const qrSize = 280;
+            const frameType = state.frame;
+            
+            // A. NO FRAME
+            if (frameType === 'none') {
+                finalCanvas.width = qrSize;
+                finalCanvas.height = qrSize;
+                ctx.drawImage(sourceCanvas, 0, 0);
+                return;
+            }
+
+            // B. BANNER BOTTOM FRAME
+            if (frameType === 'bottom-bubble') {
+                const padding = 20;
+                const textHeight = 60;
+                finalCanvas.width = qrSize + (padding*2);
+                finalCanvas.height = qrSize + (padding*2) + textHeight;
+
+                // Draw Frame Body
+                ctx.fillStyle = state.frameColor;
+                roundRect(ctx, 0, 0, finalCanvas.width, finalCanvas.height, 15);
+                ctx.fill();
+
+                // Draw White Background for QR
+                ctx.fillStyle = "#ffffff";
+                roundRect(ctx, padding, padding, qrSize, qrSize, 10);
+                ctx.fill();
+
+                // Draw QR
+                ctx.drawImage(sourceCanvas, padding, padding, qrSize, qrSize);
+
+                // Draw Text
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 24px Roboto, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(state.frameText, finalCanvas.width/2, finalCanvas.height - (textHeight/2) - 5);
+            }
+            
+            // C. BOX OUTLINE
+            if (frameType === 'box-outline') {
+                const border = 15;
+                const topBar = 40;
+                finalCanvas.width = qrSize + (border*2);
+                finalCanvas.height = qrSize + (border*2) + topBar;
+
+                // Fill Bg
+                ctx.fillStyle = state.bgColor;
+                ctx.fillRect(0,0, finalCanvas.width, finalCanvas.height);
+
+                // Draw Border
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = state.frameColor;
+                ctx.strokeRect(2.5, 2.5, finalCanvas.width-5, finalCanvas.height-5);
+
+                // Draw Top Text Background
+                ctx.fillStyle = state.frameColor;
+                ctx.fillRect(10, 10, finalCanvas.width-20, topBar);
+
+                // Draw QR
+                ctx.drawImage(sourceCanvas, border, border + topBar, qrSize, qrSize);
+
+                // Text
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 16px Roboto, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(state.frameText, finalCanvas.width/2, 10 + (topBar/2));
+            }
+        }
+
+        // Helper for rounded rects
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        /* --- 7. DOWNLOAD --- */
+        function downloadComposedQR() {
+            const link = document.createElement('a');
+            link.download = 'qr-code-design.png';
+            link.href = document.getElementById('final-canvas').toDataURL();
+            link.click();
+        }
+
+        /* --- THEME --- */
+        const themeToggle = document.getElementById('themeToggle');
+        if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+        themeToggle.addEventListener('click', () => {
+            if (document.body.getAttribute('data-theme') === 'light') {
+                document.body.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    </script>
+</body>
+</html>
