@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter | DevTools</title>
+    <!-- Professional Monospace Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Link to main styles for shared header/font, but we override specific layouts below -->
+    <link rel="stylesheet" href="../style.css">
+
+    <style>
+        /* --- SPECIFIC UI OVERRIDES FOR JWT-STYLE LAYOUT --- */
+        :root {
+            --bg-app: #0b0c10;       /* Very dark background like image */
+            --bg-panel: #1b1c21;     /* Slightly lighter panels */
+            --border-color: #3e4249;
+            --accent-pink: #fb015b;  /* JWT Pink accent */
+            --accent-blue: #00b9f1;  /* JWT Blue accent */
+            --text-success: #27ae60;
+            --text-error: #e74c3c;
+            --syntax-key: #d63aff;   /* Purple/Pink for keys */
+            --syntax-string: #00b9f1;/* Blue for strings */
+            --syntax-number: #fb015b;/* Pink for numbers */
+            --syntax-bool: #e67e22;  /* Orange for booleans */
+        }
+
+        body {
+            background-color: var(--bg-app);
+            color: #dcdcdc;
+            font-family: 'Fira Code', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent body scroll, let panels scroll */
+            margin: 0;
+        }
+
+        /* Override Header to match Dark Theme perfectly */
+        header {
+            background-color: #000000;
+            border-bottom: 1px solid #333;
+            padding: 15px 20px;
+        }
+        
+        .brand h1 { color: white; font-size: 1.1rem; }
+        .nav-back { color: var(--accent-blue); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;}
+        .nav-back:hover { text-decoration: underline; }
+
+        /* MAIN WORKSPACE */
+        .workspace {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            height: calc(100vh - 60px);
+        }
+
+        /* PANELS */
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .panel-header {
+            padding: 10px 15px;
+            background-color: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #aaa;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            background: transparent;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-action:hover {
+            border-color: var(--accent-blue);
+            color: white;
+        }
+        .btn-primary {
+            background-color: var(--accent-pink);
+            border-color: var(--accent-pink);
+            color: white;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background-color: #d9014f;
+        }
+
+        /* EDITORS */
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Input Textarea */
+        #jsonInput {
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            border: none;
+            color: #e0e0e0;
+            padding: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        /* Output Pre */
+        #jsonOutput {
+            margin: 0;
+            padding: 15px;
+            height: 100%;
+            overflow: auto;
+            color: #e0e0e0;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap; /* Wrap long lines */
+        }
+
+        /* Status Bar (Notification) */
+        .status-bar {
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            background: #141414;
+        }
+        .status-valid { color: var(--text-success); border-left: 4px solid var(--text-success); }
+        .status-error { color: var(--text-error); border-left: 4px solid var(--text-error); }
+
+        /* SYNTAX HIGHLIGHTING COLORS */
+        .key { color: var(--syntax-key); }
+        .string { color: var(--syntax-string); }
+        .number { color: var(--syntax-number); }
+        .boolean { color: var(--syntax-bool); }
+        .null { color: #95a5a6; font-style: italic; }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1b1c21; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .workspace { flex-direction: column; overflow-y: auto; height: auto;}
+            .panel { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="brand">
+                <a href="../index.html" class="nav-back">
+                    <span>&larr;</span> DevTools
+                </a>
+            </div>
+            <div style="font-size: 0.9rem; color: #777;">JSON_Debugger</div>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- LEFT PANEL: RAW INPUT -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Encoded / Raw</span>
+                <div class="actions">
+                    <button class="btn-action" onclick="pasteClipboard()">Paste</button>
+                    <button class="btn-action" onclick="clearInput()">Clear</button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea id="jsonInput" placeholder="Paste your messy JSON here..." spellcheck="false"></textarea>
+            </div>
+            <div id="statusInput" class="status-bar status-valid" style="display:none;">Ready</div>
+        </div>
+
+        <!-- RIGHT PANEL: PRETTY OUTPUT -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Decoded / Pretty</span>
+                <div class="actions">
+                    <button class="btn-action" onclick="toggleMinify()">Minify</button>
+                    <button class="btn-action btn-primary" onclick="copyOutput()">Copy</button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <pre id="jsonOutput"></pre>
+            </div>
+            <div id="statusOutput" class="status-bar status-valid">
+                Waiting for input...
+            </div>
+        </div>
+    </div>
+
+    <!-- Script included directly as requested for single file portability within directory -->
+    <script>
+        const inputArea = document.getElementById('jsonInput');
+        const outputArea = document.getElementById('jsonOutput');
+        const statusOut = document.getElementById('statusOutput');
+        
+        let isMinified = false;
+        let currentObj = null;
+
+        // Auto-run on input
+        inputArea.addEventListener('input', () => {
+            processJSON(inputArea.value);
+        });
+
+        // 1. Core Logic: Parse and Format
+        function processJSON(raw) {
+            if (!raw.trim()) {
+                outputArea.innerHTML = '';
+                statusOut.className = 'status-bar';
+                statusOut.innerText = 'Waiting for input...';
+                return;
+            }
+
+            try {
+                // Parse
+                currentObj = JSON.parse(raw);
+                
+                // Format
+                const formatted = isMinified 
+                    ? JSON.stringify(currentObj) 
+                    : JSON.stringify(currentObj, null, 4);
+
+                // Highlight
+                outputArea.innerHTML = isMinified ? formatted : syntaxHighlight(formatted);
+                
+                // Update Status
+                statusOut.className = 'status-bar status-valid';
+                statusOut.innerText = 'Valid JSON • Parsed successfully';
+            } catch (e) {
+                // Handle Error
+                outputArea.innerText = e.message; // Show error in output for clarity
+                outputArea.style.color = '#e74c3c';
+                
+                statusOut.className = 'status-bar status-error';
+                statusOut.innerText = `Invalid JSON: ${e.message}`;
+            }
+        }
+
+        // 2. Syntax Highlighter (Regex Magic)
+        function syntaxHighlight(json) {
+            outputArea.style.color = '#e0e0e0'; // Reset color from error state
+
+            // Escape HTML entities to prevent XSS issues when rendering raw text
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                        // Strip the colon for styling, then add it back outside span if desired, 
+                        // but simpler to keep inside or just style the whole match.
+                        // JWT.io style: Keys are one color, Strings another.
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // 3. Button Actions
+        function clearInput() {
+            inputArea.value = '';
+            inputArea.focus();
+            processJSON('');
+        }
+
+        async function pasteClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                inputArea.value = text;
+                processJSON(text);
+            } catch (err) {
+                alert('Failed to read clipboard contents.');
+            }
+        }
+
+        function copyOutput() {
+            if (!currentObj) return;
+            const textToCopy = isMinified 
+                ? JSON.stringify(currentObj) 
+                : JSON.stringify(currentObj, null, 4);
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = statusOut.innerText;
+                statusOut.innerText = "Copied to clipboard!";
+                setTimeout(() => statusOut.innerText = originalText, 2000);
+            });
+        }
+
+        function toggleMinify() {
+            if (!currentObj) return;
+            isMinified = !isMinified;
+            processJSON(inputArea.value);
+        }
+
+        // Add some sample data on load for visual check
+        window.onload = () => {
+             // Only if empty
+            if(!inputArea.value) {
+                // Sample Data
+                const sample = {
+                    "tool": "JSON Formatter",
+                    "style": "Dark Mode",
+                    "features": ["Syntax Highlighting", "Validation", "Minify"],
+                    "active": true,
+                    "count": 42
+                };
+                inputArea.value = JSON.stringify(sample, null, 4);
+                processJSON(inputArea.value);
+            }
+        }
+    </script>
+</body>
+</html>
+
