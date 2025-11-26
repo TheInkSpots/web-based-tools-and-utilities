@@ -3,282 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevUtils - Git Diff Checker</title>
+    <title>DevUtils - Advanced Git Diff</title>
     
-    <!-- Library: jsdiff (Standard for diffing text) -->
+    <!-- Library: jsdiff -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
 
     <style>
         /* --- 1. THEME VARIABLES --- */
         :root {
-            --bg-dark: #121212;
-            --bg-panel: #1e1e1e;
+            --bg-dark: #1e1e1e; /* VS Code Dark */
+            --bg-panel: #252526;
             --text-main: #cccccc;
-            --text-muted: #6e7681;
-            --border: #30363d;
+            --text-muted: #858585;
+            --border: #3e3e42;
             
-            --jwt-pink: #fb015b;
-            --jwt-blue: #00b9f1;
+            --jwt-blue: #007acc; /* VS Code Blue */
             
-            /* VS Code Diff Colors (Dark) */
-            --diff-add-bg: rgba(46, 160, 67, 0.15);
-            --diff-add-text: #babbbd; /* Normal text */
-            --diff-add-gutter: rgba(46, 160, 67, 0.3);
+            /* LINE Backgrounds (Subtle) */
+            --diff-add-bg: rgba(72, 126, 2, 0.2);
+            --diff-del-bg: rgba(255, 0, 0, 0.2);
             
-            --diff-del-bg: rgba(248, 81, 73, 0.15);
-            --diff-del-text: #babbbd;
-            --diff-del-gutter: rgba(248, 81, 73, 0.3);
+            /* WORD/CHAR Highlights (Stronger) */
+            --diff-add-token: rgba(72, 126, 2, 0.6);
+            --diff-del-token: rgba(255, 0, 0, 0.5);
 
             --gutter-bg: #1e1e1e;
-            --gutter-text: #6e7681;
-            --gutter-border: #30363d;
+            --gutter-text: #858585;
+            --gutter-border: #2b2b2b;
             
-            --code-font: 'Fira Code', 'Consolas', monospace;
+            --code-font: 'Menlo', 'Monaco', 'Courier New', monospace;
         }
 
         [data-theme=light] {
             --bg-dark: #ffffff;
-            --bg-panel: #f6f8fa;
+            --bg-panel: #f3f3f3;
             --text-main: #24292f;
-            --text-muted: #57606a;
-            --border: #d0d7de;
+            --text-muted: #6e7781;
+            --border: #e1e4e8;
             
-            /* VS Code Diff Colors (Light) */
             --diff-add-bg: #e6ffec;
-            --diff-add-text: #24292f;
-            --diff-add-gutter: #acf2bd;
-            
             --diff-del-bg: #ffebe9;
-            --diff-del-text: #24292f;
-            --diff-del-gutter: #ffc1c0;
+            
+            --diff-add-token: #abf2bc;
+            --diff-del-token: #ffc1c0;
 
-            --gutter-bg: #f6f8fa;
-            --gutter-text: #6e7681;
-            --gutter-border: #d0d7de;
+            --gutter-bg: #ffffff;
+            --gutter-text: #6e7781;
+            --gutter-border: #e1e4e8;
         }
 
-        /* --- 2. RESET & LAYOUT --- */
+        /* --- 2. LAYOUT --- */
         * { box-sizing: border-box; outline: 0; }
-        body { font-family: 'Segoe UI', sans-serif; color: var(--text-main); background-color: var(--bg-dark); margin: 0; padding-bottom: 50px; transition: background .3s; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text-main); background-color: var(--bg-dark); margin: 0; height: 100vh; overflow: hidden; }
         
         /* Header */
-        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
-        .logo { gap: 10px; font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; color: var(--text-main); }
-        .logo-icon { width: 32px; height: 32px; background: var(--jwt-blue); border-radius: 4px; display: grid; place-items: center; color: #fff; font-family: var(--code-font); font-weight: bold; }
-        .icon-btn { cursor: pointer; opacity: 0.7; font-size: 1.2rem; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border); height: 50px; }
+        .logo { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+        .icon-btn { cursor: pointer; opacity: 0.7; font-size: 1.1rem; }
+        .icon-btn:hover { opacity: 1; }
 
-        /* Layout */
-        .container { max-width: 1600px; margin: 20px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 20px; height: calc(100vh - 100px); }
+        /* Main Split */
+        .workspace { display: flex; height: calc(100vh - 50px); flex-direction: column; }
         
-        /* --- 3. INPUT SECTION (Top Half) --- */
-        .input-container { display: flex; gap: 20px; height: 35%; min-height: 200px; }
-        .input-box { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-panel); overflow: hidden; }
-        .input-header { padding: 8px 15px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        /* Inputs Area */
+        .inputs-row { display: flex; height: 30%; border-bottom: 1px solid var(--border); }
+        .input-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+        .input-col:last-child { border-right: none; }
+        
+        .col-header { padding: 5px 15px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;}
         
         textarea { 
-            flex: 1; resize: none; border: none; padding: 15px; 
-            background: var(--bg-panel); color: var(--text-main); 
-            font-family: var(--code-font); font-size: 0.9rem; line-height: 1.5;
+            flex: 1; resize: none; border: none; padding: 10px; 
+            background: var(--bg-dark); color: var(--text-main); 
+            font-family: var(--code-font); font-size: 13px; line-height: 1.5;
         }
-        textarea:focus { background: rgba(0,0,0,0.02); }
-
-        /* Action Bar */
-        .action-bar { display: flex; justify-content: center; align-items: center; gap: 15px; }
-        .btn { 
-            background: var(--jwt-blue); color: white; border: none; padding: 10px 25px; 
-            border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9rem; 
-            transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .btn:hover { background: #009ecb; }
-        .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
-        .btn.secondary:hover { border-color: var(--text-main); color: var(--text-main); }
-
-        /* --- 4. DIFF OUTPUT (Bottom Half) --- */
-        .diff-viewer { 
-            flex: 1; border: 1px solid var(--border); border-radius: 6px; 
-            background: var(--bg-panel); overflow: auto; position: relative; 
-            font-family: var(--code-font); font-size: 13px;
-        }
-
-        /* Diff Table Styling (VS Code Style) */
-        .diff-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .diff-table td { padding: 0; vertical-align: top; line-height: 20px; white-space: pre-wrap; word-break: break-all; }
         
-        /* Columns */
-        .gutter { 
-            width: 50px; min-width: 50px; text-align: right; padding-right: 10px !important; 
+        /* Action Bar */
+        .action-bar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+        .run-btn { background: var(--jwt-blue); color: white; border: none; padding: 4px 12px; border-radius: 2px; font-size: 0.8rem; cursor: pointer; font-weight: 500; }
+        .run-btn:hover { opacity: 0.9; }
+
+        /* Diff Viewer */
+        .diff-container { flex: 1; overflow: auto; background: var(--bg-dark); position: relative; }
+        
+        /* Table Styles */
+        .diff-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--code-font); font-size: 13px; }
+        .diff-table td { padding: 0; vertical-align: top; line-height: 20px; white-space: pre-wrap; word-break: break-all; height: 20px; }
+        
+        /* Specific Column Styles */
+        .num-col { 
+            width: 50px; text-align: right; padding-right: 10px !important; 
             color: var(--gutter-text); background: var(--gutter-bg); 
             border-right: 1px solid var(--gutter-border); user-select: none; 
+            opacity: 0.7;
         }
-        .code-cell { position: relative; padding-left: 15px !important; color: var(--text-main); }
-
-        /* Diff Colors */
-        .diff-del .gutter { background: var(--diff-del-gutter); color: var(--text-main); }
-        .diff-del .code-cell { background: var(--diff-del-bg); color: var(--diff-del-text); }
+        .code-col { padding-left: 10px !important; width: calc(50% - 50px); }
         
-        .diff-add .gutter { background: var(--diff-add-gutter); color: var(--text-main); }
-        .diff-add .code-cell { background: var(--diff-add-bg); color: var(--diff-add-text); }
+        /* State Colors */
+        .line-del { background-color: var(--diff-del-bg); }
+        .line-add { background-color: var(--diff-add-bg); }
+        
+        /* Intra-line highlights (VS Code Style) */
+        .token-del { background-color: var(--diff-del-token); border-radius: 1px; }
+        .token-add { background-color: var(--diff-add-token); border-radius: 1px; }
+        
+        .empty-gutter { background: var(--gutter-bg); }
+        .empty-code { background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px); }
 
-        .empty-row { background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 12px; height: 12px; background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 6px; border: 3px solid var(--bg-dark); }
         ::-webkit-scrollbar-corner { background: transparent; }
 
-        @media (max-width: 900px) { .input-container { flex-direction: column; height: auto; } }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo">
-            <div class="logo-icon">+/-</div>
-            <span>DiffCheck</span>
+            <span>DIFF EDITOR</span>
         </div>
+        
+        <div class="action-bar">
+            <button class="run-btn" onclick="computeAdvancedDiff()">Update Diff</button>
+        </div>
+
         <div class="icon-btn" id="themeToggle">◑</div>
     </header>
 
-    <div class="container">
+    <div class="workspace">
         
-        <!-- INPUTS -->
-        <div class="input-container">
-            <div class="input-box">
-                <div class="input-header">ORIGINAL TEXT</div>
-                <textarea id="originalInput" placeholder="Paste original code here..."></textarea>
+        <!-- Inputs -->
+        <div class="inputs-row">
+            <div class="input-col">
+                <div class="col-header">Original</div>
+                <textarea id="originalInput" spellcheck="false" oninput="debounceDiff()">const price = 100;
+function calculateTotal() {
+  return price * 1.20;
+}</textarea>
             </div>
-            <div class="input-box">
-                <div class="input-header">MODIFIED TEXT</div>
-                <textarea id="modifiedInput" placeholder="Paste modified code here..."></textarea>
+            <div class="input-col">
+                <div class="col-header">Modified</div>
+                <textarea id="modifiedInput" spellcheck="false" oninput="debounceDiff()">const price = 150;
+function calculateTotal() {
+  // Added tax rate
+  return price * 1.25; 
+}</textarea>
             </div>
         </div>
 
-        <!-- CONTROLS -->
-        <div class="action-bar">
-            <button class="btn" onclick="computeDiff()">Compare Files</button>
-            <button class="btn secondary" onclick="clearInputs()">Clear</button>
-        </div>
-
-        <!-- OUTPUT -->
-        <div class="diff-viewer">
+        <!-- Output -->
+        <div class="diff-container">
             <table class="diff-table" id="diffTable">
-                <!-- Diff Rows Generated Here -->
+                <!-- Diff Rows Injected Here -->
             </table>
         </div>
 
     </div>
 
     <script>
-        // --- 1. INIT & EXAMPLE DATA ---
-        const defaultOriginal = `function calculateTotal(items) {
-  let total = 0;
-  for (let i = 0; i < items.length; i++) {
-    total += items[i].price;
-  }
-  return total;
-}`;
-
-        const defaultModified = `function calculateTotal(items) {
-  // Use reduce for cleaner code
-  return items.reduce((sum, item) => {
-    return sum + item.price;
-  }, 0);
-}`;
-
-        document.getElementById('originalInput').value = defaultOriginal;
-        document.getElementById('modifiedInput').value = defaultModified;
-
-        // --- 2. CORE DIFF LOGIC ---
-        function computeDiff() {
-            const original = document.getElementById('originalInput').value;
-            const modified = document.getElementById('modifiedInput').value;
+        // --- 1. ADVANCED DIFF LOGIC ---
+        
+        function computeAdvancedDiff() {
+            const text1 = document.getElementById('originalInput').value;
+            const text2 = document.getElementById('modifiedInput').value;
             const table = document.getElementById('diffTable');
             
-            table.innerHTML = ""; // Clear previous
-
-            // Use jsdiff library to compute line diffs
-            const diffs = Diff.diffLines(original, modified);
-
-            // We need to track line numbers for Left (Original) and Right (Modified)
-            let leftLine = 1;
-            let rightLine = 1;
-
-            // Render Loop
-            // VS Code Side-by-Side Logic:
-            // - Unchanged: Render on both sides.
-            // - Removed: Render on Left, Right is empty/hatched.
-            // - Added: Render on Right, Left is empty/hatched.
+            // 1. Get Line-by-Line Diff
+            const diffs = Diff.diffLines(text1, text2);
             
-            diffs.forEach(part => {
-                const lines = part.value.split('\n');
-                // diffLines often adds a trailing empty string if ends with newline
-                if (lines[lines.length - 1] === '') lines.pop();
+            table.innerHTML = "";
+            let leftNum = 1;
+            let rightNum = 1;
+            
+            // We process the diff array to pair up "Removed" blocks with immediately following "Added" blocks
+            // to detect "Modifications" vs "Deletions/Insertions".
+            
+            for (let i = 0; i < diffs.length; i++) {
+                const part = diffs[i];
+                
+                // --- CASE A: Unchanged ---
+                if (!part.added && !part.removed) {
+                    const lines = part.value.split('\n');
+                    if (lines[lines.length - 1] === '') lines.pop();
+                    
+                    lines.forEach(line => {
+                        renderRow(leftNum, rightNum, line, line, 'normal');
+                        leftNum++;
+                        rightNum++;
+                    });
+                    continue;
+                }
+                
+                // --- CASE B: Modification (Remove followed by Add) ---
+                // We check if the NEXT part exists and is an 'added' part
+                if (part.removed && diffs[i+1] && diffs[i+1].added) {
+                    const nextPart = diffs[i+1];
+                    
+                    const remLines = part.value.split('\n');
+                    if (remLines[remLines.length - 1] === '') remLines.pop();
+                    
+                    const addLines = nextPart.value.split('\n');
+                    if (addLines[addLines.length - 1] === '') addLines.pop();
+                    
+                    // We pair them up line-by-line up to the minimum length
+                    const count = Math.max(remLines.length, addLines.length);
+                    
+                    for(let j = 0; j < count; j++) {
+                        const remLine = remLines[j];
+                        const addLine = addLines[j];
+                        
+                        if (remLine !== undefined && addLine !== undefined) {
+                            // *** INTRA-LINE DIFF *** 
+                            // Compute char-level diffs for this specific line pair
+                            const charDiffs = Diff.diffWordsWithSpace(remLine, addLine);
+                            
+                            let leftHTML = "";
+                            let rightHTML = "";
+                            
+                            charDiffs.forEach(change => {
+                                const esc = escapeHtml(change.value);
+                                if(change.removed) {
+                                    leftHTML += `<span class="token-del">${esc}</span>`;
+                                } else if(change.added) {
+                                    rightHTML += `<span class="token-add">${esc}</span>`;
+                                } else {
+                                    leftHTML += esc;
+                                    rightHTML += esc;
+                                }
+                            });
+                            
+                            renderRow(leftNum, rightNum, leftHTML, rightHTML, 'modified');
+                            leftNum++;
+                            rightNum++;
 
-                const colorClass = part.added ? 'diff-add' : part.removed ? 'diff-del' : '';
-
-                lines.forEach(line => {
-                    const row = document.createElement('tr');
-
-                    // 1. LEFT COLUMN (Original)
-                    if (part.added) {
-                        // If added, Left is empty
-                        row.innerHTML += `
-                            <td class="gutter"></td>
-                            <td class="code-cell empty-row"></td>
-                        `;
-                    } else {
-                        // If removed or unchanged, Left has content
-                        row.innerHTML += `
-                            <td class="gutter ${part.removed ? 'diff-del' : ''}">${leftLine}</td>
-                            <td class="code-cell ${part.removed ? 'diff-del' : ''}">${escapeHtml(line)}</td>
-                        `;
-                        leftLine++;
+                        } else if (remLine !== undefined) {
+                            // Extra removed lines
+                            renderRow(leftNum, null, remLine, "", 'removed');
+                            leftNum++;
+                        } else {
+                            // Extra added lines
+                            renderRow(null, rightNum, "", addLine, 'added');
+                            rightNum++;
+                        }
                     }
-
-                    // 2. RIGHT COLUMN (Modified)
-                    if (part.removed) {
-                        // If removed, Right is empty
-                        row.innerHTML += `
-                            <td class="gutter"></td>
-                            <td class="code-cell empty-row"></td>
-                        `;
-                    } else {
-                        // If added or unchanged, Right has content
-                        row.innerHTML += `
-                            <td class="gutter ${part.added ? 'diff-add' : ''}">${rightLine}</td>
-                            <td class="code-cell ${part.added ? 'diff-add' : ''}">${escapeHtml(line)}</td>
-                        `;
-                        rightLine++;
-                    }
-
-                    table.appendChild(row);
-                });
-            });
+                    
+                    // Skip the next part since we processed it
+                    i++; 
+                    
+                } 
+                // --- CASE C: Pure Removal ---
+                else if (part.removed) {
+                    const lines = part.value.split('\n');
+                    if (lines[lines.length - 1] === '') lines.pop();
+                    lines.forEach(line => {
+                        renderRow(leftNum, null, line, "", 'removed');
+                        leftNum++;
+                    });
+                }
+                // --- CASE D: Pure Addition ---
+                else if (part.added) {
+                    const lines = part.value.split('\n');
+                    if (lines[lines.length - 1] === '') lines.pop();
+                    lines.forEach(line => {
+                        renderRow(null, rightNum, "", line, 'added');
+                        rightNum++;
+                    });
+                }
+            }
         }
 
-        // --- 3. UTILITIES ---
+        // --- 2. RENDER HELPER ---
+        function renderRow(lNum, rNum, lContent, rContent, type) {
+            const table = document.getElementById('diffTable');
+            const row = document.createElement('tr');
+            
+            // Classes
+            let lClass = "code-col";
+            let rClass = "code-col";
+            
+            if(type === 'removed') lClass += " line-del";
+            if(type === 'added') rClass += " line-add";
+            if(type === 'modified') {
+                lClass += " line-del";
+                rClass += " line-add";
+            }
+
+            // Left Side
+            let leftHTML = '';
+            if (lNum !== null) {
+                leftHTML = `<td class="num-col">${lNum}</td><td class="${lClass}">${type === 'normal' || type === 'removed' ? escapeHtml(lContent) : lContent}</td>`;
+            } else {
+                leftHTML = `<td class="num-col empty-gutter"></td><td class="code-col empty-code"></td>`;
+            }
+
+            // Right Side
+            let rightHTML = '';
+            if (rNum !== null) {
+                rightHTML = `<td class="num-col">${rNum}</td><td class="${rClass}">${type === 'normal' || type === 'added' ? escapeHtml(rContent) : rContent}</td>`;
+            } else {
+                rightHTML = `<td class="num-col empty-gutter"></td><td class="code-col empty-code"></td>`;
+            }
+
+            row.innerHTML = leftHTML + rightHTML;
+            table.appendChild(row);
+        }
+
         function escapeHtml(text) {
             if (!text) return "";
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;")
-                .replace(/\t/g, "    "); // Tab to spaces
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                       .replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\t/g, "    ");
         }
 
-        function clearInputs() {
-            document.getElementById('originalInput').value = "";
-            document.getElementById('modifiedInput').value = "";
-            document.getElementById('diffTable').innerHTML = "";
+        // --- 3. UTILS & EVENTS ---
+        let debounceTimer;
+        function debounceDiff() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(computeAdvancedDiff, 300);
         }
 
-        // --- 4. THEME TOGGLE ---
         const themeToggle = document.getElementById('themeToggle');
         if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
-        
         themeToggle.addEventListener('click', () => {
             if (document.body.getAttribute('data-theme') === 'light') {
                 document.body.removeAttribute('data-theme');
@@ -289,8 +334,8 @@
             }
         });
 
-        // Run initial diff
-        computeDiff();
+        // Init
+        computeAdvancedDiff();
 
     </script>
 </body>

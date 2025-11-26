@@ -12,7 +12,28 @@ const tools = [
         icon: "🧮",
         tags: ["math", "finance"]
     },
-    
+    {
+        id: 3,
+        title: "QR code generator",
+        description: "Generate and customize QR codes with ease.",
+        path: "pages/qrcode.html",
+        icon: "💻",
+        tags: ["developer", "data"]
+    },{
+        id: 3,
+        title: "Regex Tester",
+        description: "Test and debug regular expressions with real-time feedback.",
+        path: "pages/regexTester.html",
+        icon: "💻",
+        tags: ["developer", "data"]
+    },{
+        id: 3,
+        title: "URL encoder and Minify and SQL Formatter and JSON YAML And Unix Time and CRON tools",
+        description: "URL encoder and Minify and SQL Formatter and JSON YAML And Unix Time and CRON tools",
+        path: "pages/urlAsciiSqlJsonYamlMinifyUnixTimeCron.html",
+        icon: "💻",
+        tags: ["developer", "data"]
+    },
     {
         id: 3,
         title: "JSON Formatter",
@@ -29,11 +50,11 @@ const tools = [
         icon: "🔐",
         tags: ["security", "jwt"]
     },
-     {
+    {
         id: 7,
-        title: "JWT Decoder Dev",
-        description: "Decode and verify JSON Web Tokens in a development environment.",
-        path: "pages/jwt-dev.html",
+        title: "Code Diff Checker",
+        description: "Compare and highlight differences between two code snippets.",
+        path: "pages/diffChecker.html",
         icon: "🔐",
         tags: ["security", "jwt"]
     },
@@ -99,7 +120,15 @@ const tools = [
         path: "pages/shadow-gen.html",
         icon: "🎨",
         tags: ["design", "css"]
-    }
+    },
+     {
+        id: 7,
+        title: "JWT Decoder Dev",
+        description: "Decode and verify JSON Web Tokens in a development environment.",
+        path: "pages/jwt-dev.html",
+        icon: "🔐",
+        tags: ["security", "jwt"]
+    },
 ];
 
 // DOM Elements
