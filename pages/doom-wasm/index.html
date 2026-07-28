@@ -1,60 +1,329 @@
-<!doctype html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WASM DOOM - Advanced UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- copied from https://raw.githubusercontent.com/mdn/webassembly-examples/master/understanding-text-format/logger2.html (CC0) -->
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --panel-bg: #1a1a1a;
+      --primary: #d32f2f; /* DOOM Red */
+      --primary-hover: #f44336;
+      --text: #e0e0e0;
+      --text-muted: #888888;
+      --border: #333333;
+      --console-bg: #050505;
+    }
 
-<html>
+    * {
+      box-sizing: border-box;
+    }
 
-  <head>
-    <meta charset="utf-8">
-    <title>DooM</title>
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-    <style>
-      #output {
-        border: 3px groove aquamarine;
-        background-color: bisque;
-        width: 550px;
-        height: 400px;
-        font-family: monospace, serif;
-        font-size: 10px;
-        overflow-y: scroll;
-      }
-      #output span.log {
-        color:darkslateblue;
-      }
-      #output span.stdout {
-        color: black;
-      }
-      #output span.stderr {
-        font-weight: bold;
-        color:brown;
-      }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 960px;
+      width: 100%;
+    }
 
-      .container {
-        display: flex;
-      }
-    </style>
-  </head>
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
 
-  <body>
+    p {
+      margin: 0 0 15px 0;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+
+    a {
+      color: var(--primary-hover);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Game Layout */
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 960px; /* Scaled up from 640 */
+    }
+
+    /* Screen Styling */
+    .screen-wrapper {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+      transition: border-color 0.3s ease;
+    }
+
+    .screen-wrapper:focus-within {
+      border-color: var(--primary);
+    }
+
+    canvas#screen {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 10; /* Maintains the 640x400 aspect ratio */
+      image-rendering: pixelated; /* Keeps DOOM looking crisp, not blurry */
+      outline: none;
+      cursor: crosshair;
+    }
+
+    #focushint {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      margin: 0;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 8px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    /* Controls Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      background: var(--panel-bg);
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 10px;
+      border-right: 1px solid var(--border);
+    }
+
+    .toolbar-group:last-child {
+      border-right: none;
+    }
+
+    .toolbar-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-right: 5px;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.primary-btn {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    button.primary-btn:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    /* Console Styling */
+    .console-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #output {
+      background-color: var(--console-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 100%;
+      height: 300px;
+      padding: 15px;
+      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font-size: 13px;
+      overflow-y: auto;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.5);
+      display: none; /* Hidden by default */
+    }
+
+    #output.visible {
+      display: block;
+    }
+
+    #output span.log { color: #64b5f6; }
+    #output span.stdout { color: #e0e0e0; }
+    #output span.stderr { color: #e57373; font-weight: bold; }
+
+    /* Stats Footer */
+    .stats {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--panel-bg);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .stat-item span {
+      color: var(--text);
+      font-weight: bold;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
     <h1>DooM</h1>
-    <p>A wasm32 port of 1997 linuxdoom-1.10 with minimal modifications to the <a href="https://github.com/id-Software/DOOM">sources</a>. Find all the details in the README of the <a href="https://github.com/diekmann/wasm-fizzbuzz">WebAssembly from Scratch Article</a>.</p>
-    <p id="focushint"></p>
-    <p>Use <button id="enterButton">&#x23CE;</button> to start the game, 
-      arrow keys <button id="leftButton">&#x2190;</button> <button id="upButton">&#x2191;</button> <button id="downButton">&#x2193;</button> <button id="rightButton">&#x2192;</button> to move, 
-      <button id="ctrlButton">ctrl</button> to shoot, 
-      spacebar <button id="spaceButton">&nbsp;&nbsp;&nbsp;&nbsp;</button> to open gates, 
-      <button id="altButton">alt</button> and arrow keys to strafe (if your browser does not handle these keys otherwise). 
-      On mobile (and mobile only) touch the buttons above. Yeah, I'm not good a UX design.</p>
-    <div class="container">
+    <p>A wasm32 port of 1997 linuxdoom-1.10. Click the screen and use the keyboard to play.</p>
+  </header>
+
+  <div class="game-container">
+
+    <!-- Game Screen -->
+    <div class="screen-wrapper">
+      <p id="focushint">Click to focus</p>
+      <!-- HTML width/height remain 640/400 for the WASM memory buffer, CSS handles the scaling -->
       <canvas id="screen" width="640" height="400" tabindex="0">This is where the DooM screen should render.</canvas>
-      <span>&nbsp;</span>
+    </div>
+
+    <!-- On-screen Controls (Useful for mobile or touch) -->
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <span class="toolbar-label">System</span>
+        <button id="enterButton" class="primary-btn" title="Start / Enter">&#x23CE; Start</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Move</span>
+        <button id="leftButton">&#x2190;</button>
+        <button id="upButton">&#x2191;</button>
+        <button id="downButton">&#x2193;</button>
+        <button id="rightButton">&#x2192;</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Actions</span>
+        <button id="ctrlButton">CTRL (Shoot)</button>
+        <button id="spaceButton">SPACE (Open)</button>
+        <button id="altButton">ALT (Strafe)</button>
+      </div>
+    </div>
+
+    <!-- Collapsible Console -->
+    <div class="console-container">
+      <div class="console-header">
+        <span class="toolbar-label">Developer Console</span>
+        <button id="toggleConsoleBtn">Show Console</button>
+      </div>
       <div id="output"></div>
     </div>
-    gettmilliseconds calls per second: <span id="getmsps_stats">0</span> Total getmilliseconds calls: <span id="getms_stats">0</span><br>
-    DooM FPS: <span id="fps_stats">0</span> (target: 35FPS) Total Frames drawn: <span id="drawframes_stats">0</span><br>
-    Browser Animation FPS: <span id="animationfps_stats">0</span> (target: around 60FPS, depending on browser)<br>
+  </div>
 
-    <script src="main.js" defer></script>
-  </body>
+  <!-- Performance Stats -->
+  <div class="stats">
+    <div class="stat-item">
+      ms calls/sec: <span id="getmsps_stats">0</span>
+    </div>
+    <div class="stat-item">
+      Total ms calls: <span id="getms_stats">0</span>
+    </div>
+    <div class="stat-item">
+      DOOM FPS: <span id="fps_stats">0</span> / 35
+    </div>
+    <div class="stat-item">
+      Frames drawn: <span id="drawframes_stats">0</span>
+    </div>
+    <div class="stat-item">
+      Browser Animation FPS: <span id="animationfps_stats">0</span>
+    </div>
+  </div>
 
+  <!-- Scripts -->
+  <script>
+    // Logic for toggling the console output
+    const toggleBtn = document.getElementById('toggleConsoleBtn');
+    const outputDiv = document.getElementById('output');
+
+    toggleBtn.addEventListener('click', () => {
+      outputDiv.classList.toggle('visible');
+      if (outputDiv.classList.contains('visible')) {
+        toggleBtn.textContent = 'Hide Console';
+      } else {
+        toggleBtn.textContent = 'Show Console';
+      }
+    });
+  </script>
+
+  <!-- Load your WebAssembly logic -->
+  <script src="main.js" defer></script>
+
+</body>
 </html>
