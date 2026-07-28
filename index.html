@@ -2,66 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevUtility Hub</title>
-    <!-- Inter Font for Professional Look -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <!-- highlight.js theme -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>DevUtility Hub</title>
+        <!-- Inter Font -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <!-- highlight.js theme -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 </head>
 <body>
 
     <header>
-        <div class="theme-toggler">
-            <input type="checkbox" id="themeToggle">
-            <label for="themeToggle" class="toggle-label">
-                <span class="sun-icon">☀️</span>
-                <span class="moon-icon">🌙</span>
-                <span class="ball"></span>
-            </label>
-        </div>
-
-        <div class="header-content">
-            <div class="brand">
-                <span class="logo-icon">⚡</span>
-                <h1>DevUtility Hub by Miles Mo</h1>
+            <div class="theme-toggler">
+                <input type="checkbox" id="themeToggle">
+                <label for="themeToggle" class="toggle-label" title="Toggle Theme">
+                    <span class="sun-icon">☀️</span>
+                    <span class="moon-icon">🌙</span>
+                    <span class="ball"></span>
+                </label>
             </div>
-            <p>Essential tools for developers and designers.</p>
-        </div>
-        
-        <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search tools (e.g., 'converter')...">
-        </div>
-    </header>
 
-    <main>
-        <div id="toolsGrid" class="grid-container">
-            <!-- Cards will be injected here by script.js -->
-        </div>
+            <div class="header-content">
+                <div class="brand">
+                    <h1>
+                        <span class="logo-icon">⚡</span>
+                        DevUtility Hub
+                    </h1>
+                </div>
+                <p>Essential tools for developers and designers curated by Miles Mo.</p>
+            </div>
 
-        <div class="code-container" style="margin-top: 2rem;">
-            <h2>Try it out!</h2>
-            <pre><code class="language-javascript">
-// Your code will be highlighted!
-function helloWorld() {
-    console.log("Hello, world!");
-}
-            </code></pre>
-        </div>
-        
-        <div id="noResults" class="hidden">
-            <p>No tools found matching your search.</p>
-        </div>
-    </main>
+            <div class="search-container">
+                <!-- SVG Search Icon -->
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search for tools (e.g., 'JSON', 'QR Code')...">
+            </div>
+        </header>
 
-    <footer>
-        <p>&copy; 2024 DevUtility Hub. Hosted on GitHub Pages.</p>
-    </footer>
+        <main>
+            <div id="toolsGrid" class="grid-container">
+                <!-- Cards will be injected here -->
+            </div>
 
-    <script src="script.js"></script>
-    <!-- highlight.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
+            <div id="noResults" class="hidden">
+                <p>No tools found matching your search query. Try another keyword!</p>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="mac-btn close"></div>
+                    <div class="mac-btn min"></div>
+                    <div class="mac-btn max"></div>
+                </div>
+                <pre><code class="language-javascript">
+    // Welcome to DevUtility Hub!
+    const hub = {
+        creator: "Miles Mo",
+        status: "Online",
+        toolsAvailable: 18,
+        initialize() {
+            console.log("Loading utilities...");
+            return "Ready to build awesome things 🚀";
+        }
+    };
+
+    hub.initialize();
+                </code></pre>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 DevUtility Hub. Hosted on GitHub Pages.</p>
+        </footer>
+
+        <!-- highlight.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
 </body>
 </html>
