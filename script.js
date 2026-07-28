@@ -139,7 +139,15 @@ const tools = [
         path: "pages/doom-wasm/index.html",
         icon: "🎮",
         tags: ["game", "wasm", "retro"]
-    }
+  },
+  {
+      id: 18,
+      title: "light-weight canvas drawing app",
+      description: "A simple and lightweight drawing application built with HTML5 Canvas.",
+      path: "pages/nenodraw-js/index.html",
+      icon: "🖌️",
+      tags: ["canvas", "drawing", "lightweight"]
+  }
 ];
 
 
@@ -164,12 +172,12 @@ themeToggle.addEventListener('change', (e) => {
 // Render Function
 function renderTools(filterText = "") {
     grid.innerHTML = ""; // Clear current grid
-    
+
     const lowerFilter = filterText.toLowerCase();
 
     // Filter the list
     const filteredTools = tools.filter(tool => {
-        return tool.title.toLowerCase().includes(lowerFilter) || 
+        return tool.title.toLowerCase().includes(lowerFilter) ||
                tool.description.toLowerCase().includes(lowerFilter) ||
                tool.tags.some(tag => tag.includes(lowerFilter));
     });
@@ -186,7 +194,7 @@ function renderTools(filterText = "") {
         const card = document.createElement('a');
         card.href = tool.path;
         card.className = "card";
-        
+
         card.innerHTML = `
             <div class="card-icon">${tool.icon}</div>
             <h3>${tool.title}</h3>

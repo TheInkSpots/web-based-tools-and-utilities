@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Canvas Engine</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel-bg: rgba(30, 30, 30, 0.85);
+      --hover: rgba(255, 255, 255, 0.1);
+      --primary: #bb86fc;
+      --secondary: #03dac6;
+      --danger: #cf6679;
+      --text: #ffffff;
+      --text-muted: #a0a0a0;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Floating Layout */
+    .left-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      bottom: 20px;
+      width: 240px;
+      z-index: 10;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .toolbar {
+      position: absolute;
+      top: 20px;
+      left: 290px;
+      z-index: 10;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* UI Elements */
+    h3 { margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; font-weight: 600; }
+
+    .divider {
+      width: 1px;
+      height: 24px;
+      background-color: var(--border);
+      margin: 0 4px;
+    }
+    button {
+      padding: 8px 14px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    button:hover:not(:disabled) {
+      background: var(--hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    button:active:not(:disabled) { transform: translateY(0); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    button.active {
+      background: rgba(187, 134, 252, 0.15);
+      color: var(--primary);
+      border-color: rgba(187, 134, 252, 0.3);
+    }
+
+    button.action-btn { color: var(--secondary); border-color: rgba(3, 218, 198, 0.2); }
+    button.action-btn:hover:not(:disabled) { background: rgba(3, 218, 198, 0.1); border-color: var(--secondary); }
+
+    button.danger-btn { color: var(--danger); border-color: rgba(207, 102, 121, 0.2); }
+    button.danger-btn:hover:not(:disabled) { background: rgba(207, 102, 121, 0.1); border-color: var(--danger); }
+
+    .shape-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Custom Color Picker Styling */
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 100%;
+      height: 40px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px;
+      border: 1px solid var(--border);
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+    .canvas-container {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1;
+    }
+    canvas {
+      background-color: #1a1a1a;
+      background-image: radial-gradient(#333 1px, transparent 1px);
+      background-size: 20px 20px;
+      display: block;
+      width: 100%;
+      height: 100%;
+      transition: background-color 0.3s ease;
+    }
+    canvas.mode-pointer { cursor: default; }
+    canvas.mode-pencil { cursor: crosshair; }
+  </style>
+</head>
+<body>
+
+  <div class="left-panel">
+    <h3>Add Shape</h3>
+    <div class="shape-grid">
+      <button class="shape-btn" data-type="square">⬛ Square</button>
+      <button class="shape-btn" data-type="rectangle">▭ Rect</button>
+      <button class="shape-btn" data-type="triangle">🔺 Tri</button>
+      <button class="shape-btn" data-type="circle">🔴 Circle</button>
+      <button class="shape-btn" data-type="hexagon">⬡ Hex</button>
+      <button class="shape-btn" data-type="star">⭐ Star</button>
+      <button class="shape-btn" data-type="arrow" style="grid-column: span 2;">➡ Arrow</button>
+    </div>
+
+    <h3 style="margin-top: 16px;">Add Text</h3>
+    <button class="shape-btn" data-type="text" style="color: var(--primary); border-color: rgba(187,134,252,0.3);">📝 Type Text</button>
+
+    <div style="margin-top: 16px;">
+        <h3>Shape Color</h3>
+        <input type="color" id="shape-color" value="#bb86fc" title="Change color of selected shapes" />
+    </div>
+
+    <div style="margin-top: auto;">
+        <h3>Shortcuts</h3>
+        <ul style="font-size: 12px; color: var(--text-muted); padding-left: 16px; margin-bottom: 0;">
+            <li style="margin-bottom: 4px;">Delete: Del / Backspace</li>
+            <li style="margin-bottom: 4px;">Clone: Ctrl+D</li>
+            <li style="margin-bottom: 4px;">Undo: Ctrl+Z</li>
+            <li>Redo: Ctrl+Y / Shift+Z</li>
+        </ul>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button id="btn-theme" class="action-btn">🌞 Light Mode</button>
+    <div class="divider"></div>
+    <button id="btn-undo" disabled>↶ Undo</button>
+    <button id="btn-redo" disabled>↷ Redo</button>
+    <div class="divider"></div>
+    <button id="btn-pointer" class="active">👆 Pointer</button>
+    <button id="btn-pencil">✏️ Pencil</button>
+    <div class="divider"></div>
+    <button id="btn-clone" class="action-btn">📄 Clone</button>
+    <button id="btn-delete" class="danger-btn">🗑️ Delete</button>
+    <div class="divider"></div>
+    <button id="btn-export" class="action-btn">📥 Export JSON</button>
+    <button id="btn-import" class="action-btn">📤 Import JSON</button>
+    <input type="file" id="file-import" accept="application/json" style="display: none;" />
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="myCanvas" class="mode-pointer"></canvas>
+  </div>
+
+  <script>
+    const EngineState = {
+      IDLE: 'IDLE', SELECTING_BOX: 'SELECTING_BOX', DRAGGING_SHAPES: 'DRAGGING_SHAPES',
+      SCALING_SHAPES: 'SCALING_SHAPES', ROTATING_SHAPES: 'ROTATING_SHAPES', DRAWING_FREEHAND: 'DRAWING_FREEHAND'
+    };
+
+    const EngineMode = { POINTER: 'POINTER', PENCIL: 'PENCIL' };
+
+    // --- PRIMITIVE & TEXT SHAPE ---
+    class Shape {
+      constructor(x, y, width, height, color, type = 'rectangle') {
+        this.x = x; this.y = y; this.width = width; this.height = height;
+        this.color = color; this.type = type; this.text = "";
+        this.rotation = 0; this.scaleX = 1; this.scaleY = 1; this.selected = false;
+      }
+      copy() {
+        const c = new Shape(this.x, this.y, this.width, this.height, this.color, this.type);
+        c.text = this.text; c.rotation = this.rotation; c.scaleX = this.scaleX;
+        c.scaleY = this.scaleY; c.selected = this.selected; return c;
+      }
+      getMatrix() {
+        const cos = Math.cos(this.rotation), sin = Math.sin(this.rotation);
+        return {
+          a: cos * this.scaleX, b: sin * this.scaleX, c: -sin * this.scaleY,
+          d: cos * this.scaleY, e: this.x, f: this.y
+        };
+      }
+      getGlobalBounds() {
+        const { a, b, c, d, e, f } = this.getMatrix();
+        const hw = this.width / 2, hh = this.height / 2;
+        const corners = [{ x: -hw, y: -hh }, { x: hw, y: -hh }, { x: hw, y: hh }, { x: -hw, y: hh }];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        corners.forEach(cr => {
+          const gx = a * cr.x + c * cr.y + e, gy = b * cr.x + d * cr.y + f;
+          if (gx < minX) minX = gx; if (gy < minY) minY = gy;
+          if (gx > maxX) maxX = gx; if (gy > maxY) maxY = gy;
+        });
+        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY, maxX, maxY };
+      }
+      hitTest(gx, gy) {
+        const { a, b, c, d, e, f } = this.getMatrix();
+        const det = a * d - b * c;
+        if (det === 0) return false;
+        const invA = d / det, invB = -b / det, invC = -c / det, invD = a / det;
+        const invE = (c * f - d * e) / det, invF = (b * e - a * f) / det;
+        const localX = invA * gx + invC * gy + invE, localY = invB * gx + invD * gy + invF;
+        const hw = this.width / 2, hh = this.height / 2;
+        return (localX >= -hw && localX <= hw && localY >= -hh && localY <= hh);
+      }
+      draw(ctx) {
+        const { a, b, c, d, e, f } = this.getMatrix();
+        ctx.save(); ctx.transform(a, b, c, d, e, f);
+        ctx.fillStyle = this.color; ctx.beginPath();
+        const hw = this.width / 2, hh = this.height / 2;
+
+        if (this.type === 'rectangle' || this.type === 'square') ctx.rect(-hw, -hh, this.width, this.height);
+        else if (this.type === 'circle') ctx.arc(0, 0, hw, 0, Math.PI * 2);
+        else if (this.type === 'triangle') { ctx.moveTo(0, -hh); ctx.lineTo(hw, hh); ctx.lineTo(-hw, hh); ctx.closePath(); }
+        else if (this.type === 'hexagon') {
+            for(let i = 0; i < 6; i++) {
+                const angle = i * Math.PI / 3;
+                if(i === 0) ctx.moveTo(hw * Math.cos(angle), hh * Math.sin(angle));
+                else ctx.lineTo(hw * Math.cos(angle), hh * Math.sin(angle));
+            } ctx.closePath();
+        } else if (this.type === 'star') {
+            const innerR = hw / 2.5;
+            for(let i = 0; i < 10; i++) {
+                const r = i % 2 === 0 ? hw : innerR;
+                const angle = (i * Math.PI) / 5 - Math.PI / 2;
+                if(i === 0) ctx.moveTo(r * Math.cos(angle), r * Math.sin(angle));
+                else ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
+            } ctx.closePath();
+        } else if (this.type === 'arrow') {
+            ctx.moveTo(-hw, -hh/2); ctx.lineTo(0, -hh/2); ctx.lineTo(0, -hh); ctx.lineTo(hw, 0);
+            ctx.lineTo(0, hh); ctx.lineTo(0, hh/2); ctx.lineTo(-hw, hh/2); ctx.closePath();
+        } else if (this.type === 'text') {
+            ctx.font = `bold ${this.height}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(this.text, 0, 0);
+        }
+        if (this.type !== 'text') ctx.fill();
+        if (this.selected) {
+            ctx.strokeStyle = '#bb86fc'; ctx.lineWidth = 2 / Math.abs(this.scaleX || 1);
+            ctx.strokeRect(-hw, -hh, this.width, this.height);
+        }
+        ctx.restore();
+      }
+    }
+
+    // --- FREEHAND PATH ---
+    class FreehandPath {
+      constructor(color = '#bb86fc', lineWidth = 3) {
+        this.points = []; this.color = color; this.lineWidth = lineWidth; this.selected = false;
+        this.x = 0; this.y = 0; this.rotation = 0; this.scaleX = 1; this.scaleY = 1;
+      }
+      copy() {
+        const c = new FreehandPath(this.color, this.lineWidth);
+        c.points = this.points.map(p => ({ x: p.x, y: p.y }));
+        c.x = this.x; c.y = this.y; c.rotation = this.rotation; c.scaleX = this.scaleX; c.scaleY = this.scaleY; c.selected = this.selected;
+        return c;
+      }
+      addPoint(x, y) { this.points.push({ x, y }); }
+      finalize() {
+        if (this.points.length === 0) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        this.points.forEach(p => {
+            if(p.x < minX) minX = p.x; if(p.x > maxX) maxX = p.x;
+            if(p.y < minY) minY = p.y; if(p.y > maxY) maxY = p.y;
+        });
+        this.x = (minX + maxX) / 2; this.y = (minY + maxY) / 2;
+        this.points.forEach(p => { p.x -= this.x; p.y -= this.y; });
+      }
+      getMatrix() {
+        const cos = Math.cos(this.rotation), sin = Math.sin(this.rotation);
+        return { a: cos * this.scaleX, b: sin * this.scaleX, c: -sin * this.scaleY, d: cos * this.scaleY, e: this.x, f: this.y };
+      }
+      getGlobalBounds() {
+        if (this.points.length === 0) return null;
+        const { a, b, c, d, e, f } = this.getMatrix();
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        this.points.forEach(p => {
+          const gx = a * p.x + c * p.y + e, gy = b * p.x + d * p.y + f;
+          if (gx < minX) minX = gx; if (gy < minY) minY = gy;
+          if (gx > maxX) maxX = gx; if (gy > maxY) maxY = gy;
+        });
+        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY, maxX, maxY };
+      }
+      hitTest(gx, gy) {
+        if (this.points.length === 0) return false;
+        const { a, b, c, d, e, f } = this.getMatrix();
+        const det = a * d - b * c;
+        if (det === 0) return false;
+        const invA = d / det, invB = -b / det, invC = -c / det, invD = a / det;
+        const invE = (c * f - d * e) / det, invF = (b * e - a * f) / det;
+        const localX = invA * gx + invC * gy + invE, localY = invB * gx + invD * gy + invF;
+        const tolerance = Math.max(5, this.lineWidth + 2) / Math.abs(this.scaleX);
+        for(let p of this.points) if (Math.hypot(p.x - localX, p.y - localY) < tolerance) return true;
+        return false;
+      }
+      draw(ctx) {
+        if (this.points.length < 2) return;
+        const { a, b, c, d, e, f } = this.getMatrix();
+        ctx.save(); ctx.transform(a, b, c, d, e, f);
+        ctx.beginPath(); ctx.moveTo(this.points[0].x, this.points[0].y);
+        for (let i = 1; i < this.points.length; i++) ctx.lineTo(this.points[i].x, this.points[i].y);
+        ctx.strokeStyle = this.selected ? '#bb86fc' : this.color;
+        ctx.lineWidth = this.lineWidth / Math.abs(this.scaleX || 1);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (this.selected) { ctx.shadowColor = '#bb86fc'; ctx.shadowBlur = 6; }
+        ctx.stroke(); ctx.restore();
+      }
+    }
+
+    // --- ENGINE CORE ---
+    class AdvancedCanvasEngine {
+      constructor(canvasElement) {
+        this.canvas = canvasElement;
+        this.ctx = this.canvas.getContext('2d');
+        this.shapes = []; this.state = EngineState.IDLE; this.mode = EngineMode.POINTER;
+        this.currentPath = null; this.selectionBox = null; this.dragBaseline = null;
+        this.actionModified = false;
+
+        this.isDarkMode = true; // Theme state
+
+        this.history = []; this.historyIndex = -1;
+        this.handleResize();
+        window.addEventListener('resize', () => this.handleResize());
+
+        this.setupEvents(); this.setupKeyboard();
+        this.saveState(); this.render();
+      }
+
+      handleResize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+      }
+
+      // --- THEME TOGGLE ---
+      toggleTheme() {
+        this.isDarkMode = !this.isDarkMode;
+        const btn = document.getElementById('btn-theme');
+
+        if (this.isDarkMode) {
+            this.canvas.style.backgroundColor = '#1a1a1a';
+            this.canvas.style.backgroundImage = 'radial-gradient(#333 1px, transparent 1px)';
+            document.body.style.backgroundColor = '#121212';
+            btn.innerHTML = '🌞 Light Mode';
+        } else {
+            this.canvas.style.backgroundColor = '#f5f5f5';
+            this.canvas.style.backgroundImage = 'radial-gradient(#ccc 1px, transparent 1px)';
+            document.body.style.backgroundColor = '#e0e0e0';
+            btn.innerHTML = '🌙 Dark Mode';
+        }
+
+        // Auto-update default text colors to maintain contrast
+        let changed = false;
+        this.shapes.forEach(s => {
+            if (s.type === 'text') {
+                if (s.color === '#333333' && this.isDarkMode) { s.color = '#ffffff'; changed = true; }
+                else if (s.color === '#ffffff' && !this.isDarkMode) { s.color = '#333333'; changed = true; }
+            }
+        });
+        if (changed) this.saveState();
+      }
+
+      // --- SAVE / LOAD DATA ---
+      exportJSON() {
+        const data = this.shapes.map(s => {
+          if (s instanceof Shape) return { classType: 'Shape', type: s.type, x: s.x, y: s.y, w: s.width, h: s.height, c: s.color, t: s.text, r: s.rotation, sx: s.scaleX, sy: s.scaleY };
+          if (s instanceof FreehandPath) return { classType: 'FreehandPath', pts: s.points, c: s.color, lw: s.lineWidth, x: s.x, y: s.y, r: s.rotation, sx: s.scaleX, sy: s.scaleY };
+        });
+        const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'canvas-save.json'; a.click();
+      }
+
+      loadJSON(jsonString) {
+        const data = JSON.parse(jsonString);
+        this.shapes = data.map(i => {
+          if (i.classType === 'Shape') {
+            const s = new Shape(i.x, i.y, i.w, i.h, i.c, i.type);
+            s.text = i.t; s.rotation = i.r; s.scaleX = i.sx; s.scaleY = i.sy; return s;
+          } else {
+            const p = new FreehandPath(i.c, i.lw);
+            p.points = i.pts; p.x = i.x; p.y = i.y; p.rotation = i.r; p.scaleX = i.sx; p.scaleY = i.sy; return p;
+          }
+        });
+        this.history = []; this.historyIndex = -1; this.saveState();
+      }
+
+      // --- HISTORY ---
+      saveState() {
+        if (this.historyIndex < this.history.length - 1) this.history = this.history.slice(0, this.historyIndex + 1);
+        this.history.push(this.shapes.map(s => s.copy()));
+        this.historyIndex++;
+        if (this.history.length > 50) { this.history.shift(); this.historyIndex--; }
+        this.updateHistoryUI();
+      }
+      undo() { if (this.historyIndex > 0) { this.historyIndex--; this.shapes = this.history[this.historyIndex].map(s => s.copy()); this.updateHistoryUI(); this.updateColorPicker(); } }
+      redo() { if (this.historyIndex < this.history.length - 1) { this.historyIndex++; this.shapes = this.history[this.historyIndex].map(s => s.copy()); this.updateHistoryUI(); this.updateColorPicker(); } }
+      updateHistoryUI() {
+        document.getElementById('btn-undo').disabled = this.historyIndex <= 0;
+        document.getElementById('btn-redo').disabled = this.historyIndex >= this.history.length - 1;
+      }
+
+      setMode(mode) {
+        this.mode = mode; this.shapes.forEach(s => s.selected = false);
+        this.canvas.className = mode === EngineMode.PENCIL ? 'mode-pencil' : 'mode-pointer';
+        this.updateColorPicker();
+      }
+
+      deleteSelection() {
+        const initCount = this.shapes.length;
+        this.shapes = this.shapes.filter(s => !s.selected);
+        if (this.shapes.length < initCount) this.saveState();
+      }
+
+      cloneSelection() {
+        const sel = this.shapes.filter(s => s.selected);
+        if (sel.length === 0) return;
+        this.shapes.forEach(s => s.selected = false);
+        sel.forEach(s => { const clone = s.copy(); clone.x += 20; clone.y += 20; clone.selected = true; this.shapes.push(clone); });
+        this.saveState();
+      }
+
+      addShape(type) {
+        const colors = ['#bb86fc', '#03dac6', '#cf6679', '#ffb74d', '#4db6ac'];
+        // Pick default text color based on active theme
+        const defaultTextCol = this.isDarkMode ? '#ffffff' : '#333333';
+        const color = type === 'text' ? defaultTextCol : colors[Math.floor(Math.random() * colors.length)];
+
+        let w = 120, h = 120, textVal = "";
+        if (type === 'rectangle') w = 180;
+        if (type === 'text') {
+            textVal = prompt("Enter text:");
+            if (!textVal) return;
+            this.ctx.font = "bold 40px sans-serif";
+            w = this.ctx.measureText(textVal).width + 20; h = 40;
+        }
+        const newShape = new Shape(this.canvas.width / 2, this.canvas.height / 2, w, h, color, type);
+        if (type === 'text') newShape.text = textVal;
+        this.shapes.forEach(s => s.selected = false); newShape.selected = true;
+        this.shapes.push(newShape);
+        this.saveState();
+        document.getElementById('btn-pointer').click();
+        this.updateColorPicker();
+      }
+
+      updateColorPicker() {
+          const sel = this.shapes.filter(s => s.selected);
+          if (sel.length > 0) {
+              // Convert shorthand hex or rgb if necessary, but we only use standard hex internally
+              document.getElementById('shape-color').value = sel[0].color;
+          }
+      }
+
+      changeSelectionColor(newColor) {
+          let changed = false;
+          this.shapes.filter(s => s.selected).forEach(s => { s.color = newColor; changed = true; });
+          return changed;
+      }
+
+      getMouseCoords(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      setupKeyboard() {
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'Delete' || e.key === 'Backspace') this.deleteSelection();
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); this.cloneSelection(); }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); this.undo(); }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); this.redo(); }
+        });
+      }
+
+      setupEvents() {
+        const getGlobalAABB = (sel) => {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          sel.forEach(s => {
+            const b = s.getGlobalBounds();
+            if(!b) return;
+            if(b.x < minX) minX = b.x; if(b.y < minY) minY = b.y;
+            if(b.maxX > maxX) maxX = b.maxX; if(b.maxY > maxY) maxY = b.maxY;
+          });
+          return minX === Infinity ? null : { x: minX, y: minY, width: maxX - minX, height: maxY - minY, maxX, maxY };
+        };
+
+        this.canvas.addEventListener('mousedown', (e) => {
+          const { x, y } = this.getMouseCoords(e);
+          this.actionModified = false;
+          if (this.mode === EngineMode.PENCIL) {
+            this.state = EngineState.DRAWING_FREEHAND;
+            this.currentPath = new FreehandPath(document.getElementById('shape-color').value, 4);
+            this.currentPath.addPoint(x, y); this.shapes.push(this.currentPath); return;
+          }
+
+          const sel = this.shapes.filter(s => s.selected);
+          const aabb = getGlobalAABB(sel);
+          let handle = null;
+          if(aabb) {
+             const hs = 14;
+             if (x >= aabb.maxX - hs && x <= aabb.maxX + hs && y >= aabb.maxY - hs && y <= aabb.maxY + hs) handle = 'scale';
+             else if (x >= aabb.x + aabb.width/2 - hs && x <= aabb.x + aabb.width/2 + hs && y >= aabb.y - 30 - hs && y <= aabb.y - 30 + hs) handle = 'rotate';
+          }
+
+          if (handle && sel.length > 0) {
+            this.state = handle === 'scale' ? EngineState.SCALING_SHAPES : EngineState.ROTATING_SHAPES;
+            this.dragBaseline = {
+                originX: aabb.x, originY: aabb.y, centerX: aabb.x + aabb.width/2, centerY: aabb.y + aabb.height/2, startX: x, startY: y, initialAABB: aabb,
+                shapesStart: sel.map(s => ({ shape: s, x: s.x, y: s.y, scaleX: s.scaleX, scaleY: s.scaleY, rotation: s.rotation || 0 }))
+            };
+            return;
+          }
+
+          let clicked = null;
+          for (let i = this.shapes.length - 1; i >= 0; i--) { if (this.shapes[i].hitTest(x, y)) { clicked = this.shapes[i]; break; } }
+
+          if (clicked) {
+            if (!clicked.selected) { if(!e.shiftKey) this.shapes.forEach(s => s.selected = false); clicked.selected = true; }
+            this.state = EngineState.DRAGGING_SHAPES;
+            this.dragBaseline = { startX: x, startY: y, shapesStart: this.shapes.filter(s => s.selected).map(s => ({ shape: s, x: s.x, y: s.y })) };
+            this.updateColorPicker(); // Sync color picker to newly clicked shape
+          } else {
+            if(!e.shiftKey) this.shapes.forEach(s => s.selected = false);
+            this.state = EngineState.SELECTING_BOX; this.selectionBox = { startX: x, startY: y, currentX: x, currentY: y };
+          }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+          const { x, y } = this.getMouseCoords(e);
+          if (this.state === EngineState.DRAWING_FREEHAND && this.currentPath) { this.currentPath.addPoint(x, y); this.actionModified = true; }
+          else if (this.state === EngineState.DRAGGING_SHAPES) {
+            const dx = x - this.dragBaseline.startX, dy = y - this.dragBaseline.startY;
+            if (Math.abs(dx) > 1 || Math.abs(dy) > 1) this.actionModified = true;
+            this.dragBaseline.shapesStart.forEach(st => { st.shape.x = st.x + dx; st.shape.y = st.y + dy; });
+          }
+          else if (this.state === EngineState.SCALING_SHAPES) {
+            this.actionModified = true;
+            const { originX, originY, initialAABB, shapesStart } = this.dragBaseline;
+            const ratioX = Math.max(10, x - originX) / initialAABB.width, ratioY = Math.max(10, y - originY) / initialAABB.height;
+            shapesStart.forEach(st => { st.shape.scaleX = st.scaleX * ratioX; st.shape.scaleY = st.scaleY * ratioY; st.shape.x = originX + (st.x - originX) * ratioX; st.shape.y = originY + (st.y - originY) * ratioY; });
+          }
+          else if (this.state === EngineState.ROTATING_SHAPES) {
+            this.actionModified = true;
+            const { centerX, centerY, startX, startY, shapesStart } = this.dragBaseline;
+            const delta = Math.atan2(y - centerY, x - centerX) - Math.atan2(startY - centerY, startX - centerX);
+            shapesStart.forEach(st => { st.shape.rotation = st.rotation + delta; });
+          }
+          else if (this.state === EngineState.SELECTING_BOX) { this.selectionBox.currentX = x; this.selectionBox.currentY = y; }
+        });
+
+        const handleUp = () => {
+            if (this.state === EngineState.SELECTING_BOX && this.selectionBox) {
+                const minX = Math.min(this.selectionBox.startX, this.selectionBox.currentX), maxX = Math.max(this.selectionBox.startX, this.selectionBox.currentX);
+                const minY = Math.min(this.selectionBox.startY, this.selectionBox.currentY), maxY = Math.max(this.selectionBox.startY, this.selectionBox.currentY);
+                if(maxX - minX > 5 && maxY - minY > 5) this.shapes.forEach(s => { const b = s.getGlobalBounds(); if(b) s.selected = (b.x < maxX && b.maxX > minX && b.y < maxY && b.maxY > minY); });
+                this.updateColorPicker(); // Sync color picker to box selection
+            }
+            if (this.state === EngineState.DRAWING_FREEHAND && this.currentPath) { this.currentPath.finalize(); this.shapes.forEach(s => s.selected = false); this.currentPath.selected = true; document.getElementById('btn-pointer').click(); }
+            if (this.actionModified) this.saveState();
+            this.state = EngineState.IDLE; this.currentPath = null; this.selectionBox = null; this.actionModified = false;
+        };
+        this.canvas.addEventListener('mouseup', handleUp);
+      }
+
+      render = () => {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.shapes.forEach(s => s.draw(this.ctx));
+
+        const sel = this.shapes.filter(s => s.selected);
+        if (sel.length > 0 && this.state !== EngineState.DRAWING_FREEHAND && this.state !== EngineState.SELECTING_BOX) {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          sel.forEach(s => { const b = s.getGlobalBounds(); if(b) { if(b.x < minX) minX = b.x; if(b.y < minY) minY = b.y; if(b.maxX > maxX) maxX = b.maxX; if(b.maxY > maxY) maxY = b.maxY; }});
+          if (minX !== Infinity) {
+            this.ctx.strokeStyle = 'rgba(187, 134, 252, 0.8)'; this.ctx.setLineDash([5, 5]); this.ctx.lineWidth = 1.5;
+            this.ctx.strokeRect(minX, minY, maxX - minX, maxY - minY); this.ctx.setLineDash([]);
+
+            const hs = 10; this.ctx.fillStyle = '#1e1e1e'; this.ctx.strokeStyle = '#bb86fc'; this.ctx.lineWidth = 2;
+            this.ctx.fillRect(maxX - hs/2, maxY - hs/2, hs, hs); this.ctx.strokeRect(maxX - hs/2, maxY - hs/2, hs, hs);
+
+            const cx = minX + (maxX - minX) / 2, cy = minY - 30;
+            this.ctx.beginPath(); this.ctx.moveTo(cx, minY); this.ctx.lineTo(cx, cy); this.ctx.stroke();
+            this.ctx.beginPath(); this.ctx.arc(cx, cy, hs/1.5, 0, Math.PI * 2); this.ctx.fill(); this.ctx.stroke();
+          }
+        }
+
+        if (this.state === EngineState.SELECTING_BOX && this.selectionBox) {
+            this.ctx.fillStyle = 'rgba(187, 134, 252, 0.1)'; this.ctx.strokeStyle = '#bb86fc'; this.ctx.lineWidth = 1;
+            const w = this.selectionBox.currentX - this.selectionBox.startX, h = this.selectionBox.currentY - this.selectionBox.startY;
+            this.ctx.fillRect(this.selectionBox.startX, this.selectionBox.startY, w, h); this.ctx.strokeRect(this.selectionBox.startX, this.selectionBox.startY, w, h);
+        }
+        requestAnimationFrame(this.render);
+      }
+    }
+
+    // --- INITIALIZATION ---
+    const engine = new AdvancedCanvasEngine(document.getElementById('myCanvas'));
+
+    // UI Bindings
+    const btnPointer = document.getElementById('btn-pointer');
+    const btnPencil = document.getElementById('btn-pencil');
+    const btnTheme = document.getElementById('btn-theme');
+    const colorPicker = document.getElementById('shape-color');
+
+    btnPointer.addEventListener('click', () => { engine.setMode(EngineMode.POINTER); btnPointer.classList.add('active'); btnPencil.classList.remove('active'); });
+    btnPencil.addEventListener('click', () => { engine.setMode(EngineMode.PENCIL); btnPencil.classList.add('active'); btnPointer.classList.remove('active'); });
+
+    document.getElementById('btn-delete').addEventListener('click', () => engine.deleteSelection());
+    document.getElementById('btn-clone').addEventListener('click', () => engine.cloneSelection());
+    document.getElementById('btn-undo').addEventListener('click', () => engine.undo());
+    document.getElementById('btn-redo').addEventListener('click', () => engine.redo());
+
+    btnTheme.addEventListener('click', () => engine.toggleTheme());
+
+    document.querySelectorAll('.shape-btn').forEach(btn => btn.addEventListener('click', (e) => engine.addShape(e.target.getAttribute('data-type'))));
+
+    // Color Picker Logic
+    colorPicker.addEventListener('input', (e) => {
+        engine.changeSelectionColor(e.target.value);
+        // It renders in real time via requestAnimationFrame
+    });
+    colorPicker.addEventListener('change', (e) => {
+        // Save history state once user finishes choosing color
+        if (engine.changeSelectionColor(e.target.value)) {
+            engine.saveState();
+        }
+    });
+
+    // Export & Import Handlers
+    document.getElementById('btn-export').addEventListener('click', () => engine.exportJSON());
+    document.getElementById('btn-import').addEventListener('click', () => document.getElementById('file-import').click());
+
+    document.getElementById('file-import').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => engine.loadJSON(event.target.result);
+        reader.readAsText(file);
+        e.target.value = ''; // Reset input
+    });
+
+  </script>
+</body>
+</html>
